@@ -6,7 +6,7 @@ const navLinks = [
   { href: '#metas', label: 'Metas' },
 ];
 
-export default function MobileMenu({ isOpen, onClose, onAuthClick }) {
+export default function MobileMenu({ isOpen, onClose }) {
   return (
     <div
       className={`fixed inset-0 z-40 transition-opacity duration-500 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
@@ -35,10 +35,7 @@ export default function MobileMenu({ isOpen, onClose, onAuthClick }) {
           <div className="mt-4 pt-4 border-t border-outline-variant/20">
             <button
               className="w-full px-6 py-4 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 text-primary font-medium hover:border-primary/40 transition-all"
-              onClick={() => {
-                onClose();
-                onAuthClick();
-              }}
+              onClick={() => alert('Funcionalidad de acceso próximamente')}
             >
               Iniciar Sesión
             </button>

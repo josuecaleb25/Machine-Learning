@@ -8,12 +8,10 @@ import Metas from './components/sections/Metas';
 import Footer from './components/layout/Footer';
 import PollenCanvas from './components/layout/PollenCanvas';
 import MobileMenu from './components/layout/MobileMenu';
-import AuthModal from './components/auth/AuthModal';
 import './styles/global.css';
 
 function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
     // Parallax and Reveal Logic
@@ -86,19 +84,8 @@ function App() {
   return (
     <div className="bg-background text-on-background font-body-md overflow-x-hidden selection:bg-primary-fixed selection:text-on-primary-fixed">
       <PollenCanvas />
-      <Navbar 
-        onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-        onAuthClick={() => setIsAuthModalOpen(true)}
-      />
-      <MobileMenu 
-        isOpen={isMobileMenuOpen} 
-        onClose={() => setIsMobileMenuOpen(false)}
-        onAuthClick={() => setIsAuthModalOpen(true)}
-      />
-      <AuthModal 
-        isOpen={isAuthModalOpen} 
-        onClose={() => setIsAuthModalOpen(false)}
-      />
+      <Navbar onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
+      <MobileMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
       <Hero />
       <Metodologia />
       <Impacto />
