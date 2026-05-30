@@ -6,7 +6,7 @@ const navLinks = [
   { href: '#metas', label: 'Metas' },
 ];
 
-export default function Navbar({ onMobileMenuToggle }) {
+export default function Navbar({ onMobileMenuToggle, onAuthClick }) {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 px-6 pt-6 transition-all duration-500" id="mainHeader">
       <div className="max-w-7xl mx-auto">
@@ -38,7 +38,7 @@ export default function Navbar({ onMobileMenuToggle }) {
             <div className="relative z-10">
               <button
                 className="group/btn relative overflow-hidden px-6 py-2.5 rounded-full bg-white/5 backdrop-blur-sm border-2 border-[#2d5a27] text-on-surface text-sm font-medium hover:bg-[#2d5a27] hover:text-white transition-all duration-500"
-                onClick={() => alert('Funcionalidad de acceso próximamente')}
+                onClick={onAuthClick}
               >
                 <span className="relative z-10 flex items-center gap-2">
                   <span>Iniciar Sesión</span>
