@@ -283,9 +283,13 @@ export default function FaceAuthModal({ isOpen, onClose }) {
         onNotCentered: speakFaceNotCentered,
       });
 
+      overlay.stop();
+      loginOverlayRef.current = null;
+
       setLoginState('processing');
       setLoginProgress(72);
 
+      await new Promise((r) => setTimeout(r, 150));
       const facialEmbedding = await captureFaceEmbedding(loginVideoRef.current);
       setLoginProgress(85);
 
@@ -375,8 +379,12 @@ export default function FaceAuthModal({ isOpen, onClose }) {
         onNotCentered: speakFaceNotCentered,
       });
 
+      overlay.stop();
+      regOverlayRef.current = null;
+
       speakRegisterProcessing();
 
+      await new Promise((r) => setTimeout(r, 150));
       const facialEmbedding = await captureFaceEmbedding(regVideoRef.current);
       
       if (!facialEmbedding || facialEmbedding.length === 0) {
