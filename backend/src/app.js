@@ -14,10 +14,35 @@ const app = express();
 
 app.set('trust proxy', 1);
 
+// Log CORS configuration for debugging
+console.log('🔧 CORS Configuration:');
+console.log('  FRONTEND_URL:', env.FRONTEND_URL);
+console.log('  NODE_ENV:', env.NODE_ENV);
+
 app.use(helmet());
 app.use(
   cors({
-    origin: env.FRONTEND_URL,
+    origin: (origin, callback) => {
+      console.log('🌐 Request from origin:', origin);
+      
+      // Allow requests with no origin (mobile apps, Postman, etc.)
+      if (!origin) {
+        return callback(null, true);
+      }
+      
+      // Check if origin matches FRONTEND_URL
+      if (origin === env.FRONTEND_URL) {
+        return callback(null, true);
+      }
+      
+      // In development, allow localhost
+      if (env.NODE_ENV === 'development' && origin.includes('localhost')) {
+        return callback(null, true);
+      }
+      
+      console.log('❌ CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
