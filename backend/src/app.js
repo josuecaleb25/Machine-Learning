@@ -19,35 +19,32 @@ console.log('🔧 CORS Configuration:');
 console.log('  FRONTEND_URL:', env.FRONTEND_URL);
 console.log('  NODE_ENV:', env.NODE_ENV);
 
-app.use(helmet());
+// Configure Helmet with CORS-friendly settings
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+  })
+);
 app.use(
   cors({
-    origin: (origin, callback) => {
-      console.log('🌐 Request from origin:', origin);
-      
-      // Allow requests with no origin (mobile apps, Postman, etc.)
-      if (!origin) {
-        return callback(null, true);
-      }
-      
-      // Check if origin matches FRONTEND_URL
-      if (origin === env.FRONTEND_URL) {
-        return callback(null, true);
-      }
-      
-      // In development, allow localhost
-      if (env.NODE_ENV === 'development' && origin.includes('localhost')) {
-        return callback(null, true);
-      }
-      
-      console.log('❌ CORS blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
-    },
+    origin: env.FRONTEND_URL,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   })
 );
+
+// Log all incoming requests
+app.use((req, res, next) => {
+  console.log(`📥 ${req.method} ${req.path} from ${req.get('origin') || 'no-origin'}`);
+  next();
+});
+
+// Handle preflight requests explicitly
+app.options('*', cors());
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
