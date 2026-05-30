@@ -12,7 +12,8 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(16),
   JWT_EXPIRES_IN: z.string().default('7d'),
   FACE_SIMILARITY_THRESHOLD: z.coerce.number().min(0).max(1).default(0.85),
-  FRONTEND_URL: z.string().url().default('http://localhost:5173'),
+  // Una o varias URLs separadas por coma (sin barra final)
+  FRONTEND_URL: z.string().min(1).default('http://localhost:5173'),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -22,4 +23,24 @@ if (!parsed.success) {
   process.exit(1);
 }
 
-export const env = parsed.data;
+function normalizeOrigin(url) {
+  return url.trim().replace(/\/+$/, '');
+}
+
+const frontendUrls = parsed.data.FRONTEND_URL.split(',')
+  .map(normalizeOrigin)
+  .filter(Boolean);
+
+for (const url of frontendUrls) {
+  try {
+    new URL(url);
+  } catch {
+    console.error(`❌ FRONTEND_URL inválida: "${url}"`);
+    process.exit(1);
+  }
+}
+
+export const env = {
+  ...parsed.data,
+  frontendUrls,
+};

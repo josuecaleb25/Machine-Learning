@@ -16,8 +16,22 @@ app.set('trust proxy', 1);
 
 // Log CORS configuration for debugging
 console.log('🔧 CORS Configuration:');
-console.log('  FRONTEND_URL:', env.FRONTEND_URL);
+console.log('  Orígenes permitidos:', env.frontendUrls.join(', '));
 console.log('  NODE_ENV:', env.NODE_ENV);
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+
+  const normalized = origin.replace(/\/+$/, '');
+  if (env.frontendUrls.includes(normalized)) return true;
+
+  // Despliegues preview de Vercel (*.vercel.app)
+  if (env.NODE_ENV === 'production' && /^https:\/\/[\w-]+\.vercel\.app$/.test(normalized)) {
+    return true;
+  }
+
+  return false;
+}
 
 // Configure Helmet with CORS-friendly settings
 app.use(
@@ -29,7 +43,14 @@ app.use(
 
 // CORS configuration - must be before other middlewares
 const corsOptions = {
-  origin: env.FRONTEND_URL,
+  origin(origin, callback) {
+    if (isAllowedOrigin(origin)) {
+      callback(null, true);
+      return;
+    }
+    console.warn(`🚫 CORS rechazado: "${origin}". Permitidos: ${env.frontendUrls.join(', ')}`);
+    callback(null, false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -52,6 +73,7 @@ const limiter = rateLimit({
   max: env.NODE_ENV === 'production' ? 100 : 500,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.method === 'OPTIONS',
   message: {
     success: false,
     message: 'Demasiadas solicitudes. Intenta de nuevo más tarde.',
@@ -61,6 +83,7 @@ const limiter = rateLimit({
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 30,
+  skip: (req) => req.method === 'OPTIONS',
   message: {
     success: false,
     message: 'Demasiados intentos de autenticación. Espera unos minutos.',
