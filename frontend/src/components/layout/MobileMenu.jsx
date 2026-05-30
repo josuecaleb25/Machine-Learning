@@ -1,3 +1,5 @@
+import { useAuth } from '../../context/AuthContext.jsx';
+
 const navLinks = [
   { href: '#hero', label: 'Inicio' },
   { href: '#metodologia', label: 'Metodología' },
@@ -7,6 +9,8 @@ const navLinks = [
 ];
 
 export default function MobileMenu({ isOpen, onClose, onAuthClick }) {
+  const { user, logout } = useAuth();
+
   return (
     <div
       className={`fixed inset-0 z-40 transition-opacity duration-500 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
@@ -33,15 +37,32 @@ export default function MobileMenu({ isOpen, onClose, onAuthClick }) {
             </a>
           ))}
           <div className="mt-4 pt-4 border-t border-outline-variant/20">
-            <button
-              className="w-full px-6 py-4 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 text-primary font-medium hover:border-primary/40 transition-all"
-              onClick={() => {
-                onClose();
-                onAuthClick();
-              }}
-            >
-              Iniciar Sesión
-            </button>
+            {user ? (
+              <>
+                <p className="px-6 py-2 text-sm text-on-surface-variant">Sesión: {user.nombre}</p>
+                <button
+                  type="button"
+                  className="w-full px-6 py-4 rounded-2xl border border-[#2d5a27] text-[#2d5a27] font-medium"
+                  onClick={() => {
+                    logout();
+                    onClose();
+                  }}
+                >
+                  Cerrar sesión
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="w-full px-6 py-4 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 text-primary font-medium hover:border-primary/40 transition-all"
+                onClick={() => {
+                  onClose();
+                  onAuthClick();
+                }}
+              >
+                Iniciar Sesión
+              </button>
+            )}
           </div>
         </nav>
       </div>

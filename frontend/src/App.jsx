@@ -9,9 +9,10 @@ import Footer from './components/layout/Footer';
 import PollenCanvas from './components/layout/PollenCanvas';
 import MobileMenu from './components/layout/MobileMenu';
 import FaceAuthModal from './components/auth/FaceAuthModal';
+import { AuthProvider } from './context/AuthContext.jsx';
 import './styles/global.css';
 
-function App() {
+function AppContent() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isFaceAuthOpen, setIsFaceAuthOpen] = useState(false);
 
@@ -109,4 +110,10 @@ function App() {
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}

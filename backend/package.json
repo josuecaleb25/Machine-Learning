@@ -1,0 +1,38 @@
+{
+  "name": "ecovision-backend",
+  "version": "1.0.0",
+  "description": "Backend profesional para EcoVision Smart City - Sistema de clasificación inteligente de residuos",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "free-port": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/free-port.ps1 -Port 3000",
+    "dev": "npm run free-port && node --watch --no-deprecation src/index.js",
+    "dev:once": "node --no-deprecation src/index.js",
+    "start": "node src/index.js",
+    "seed": "node supabase/seed.mjs"
+  },
+  "keywords": [
+    "ecovision",
+    "smart-city",
+    "ai",
+    "waste-classification",
+    "facial-recognition",
+    "supabase"
+  ],
+  "author": "EcoVision Team",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
+    "zod": "^3.22.4"
+  }
+}
