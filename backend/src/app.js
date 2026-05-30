@@ -26,25 +26,26 @@ app.use(
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   })
 );
-app.use(
-  cors({
-    origin: env.FRONTEND_URL,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
-  })
-);
+
+// CORS configuration - must be before other middlewares
+const corsOptions = {
+  origin: env.FRONTEND_URL,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Type', 'Authorization'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // Log all incoming requests
 app.use((req, res, next) => {
   console.log(`📥 ${req.method} ${req.path} from ${req.get('origin') || 'no-origin'}`);
   next();
 });
-
-// Handle preflight requests explicitly
-app.options('*', cors());
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
