@@ -291,9 +291,7 @@ export default function FaceAuthModal({ isOpen, onClose }) {
         onNotCentered: speakFaceNotCentered,
       });
 
-      overlay.stop();
-      loginOverlayRef.current = null;
-
+      // NO detenemos el overlay aquí - debe seguir mostrando la malla
       setLoginState('processing');
       setLoginProgress(72);
 
@@ -316,10 +314,20 @@ export default function FaceAuthModal({ isOpen, onClose }) {
       showFaceAlert('success', `Bienvenido, ${nombre}`, `Identidad verificada correctamente.`);
       speakLoginSuccess(nombre);
 
+      // Detenemos el overlay DESPUÉS de completar todo el proceso
+      if (overlay) {
+        overlay.stop();
+        loginOverlayRef.current = null;
+      }
       stopStream('login');
 
       setTimeout(() => finishAuth(data), 2400);
     } catch (err) {
+      // Asegurarse de detener el overlay en caso de error
+      if (overlay) {
+        overlay.stop();
+        loginOverlayRef.current = null;
+      }
       stopStream('login');
       setLoginProgress(0);
       setSimilarity(null);
@@ -393,9 +401,7 @@ export default function FaceAuthModal({ isOpen, onClose }) {
         onNotCentered: speakFaceNotCentered,
       });
 
-      overlay.stop();
-      regOverlayRef.current = null;
-
+      // NO detenemos el overlay aquí - debe seguir mostrando la malla durante la captura
       setRegState('capturing');
       speakRegisterProcessing();
 
@@ -406,6 +412,11 @@ export default function FaceAuthModal({ isOpen, onClose }) {
         throw new Error('No se pudo capturar el embedding facial. Por favor intente de nuevo.');
       }
 
+      // Detenemos el overlay DESPUÉS de capturar el embedding
+      if (overlay) {
+        overlay.stop();
+        regOverlayRef.current = null;
+      }
       stopStream('register');
 
       await registerFace({
@@ -429,6 +440,11 @@ export default function FaceAuthModal({ isOpen, onClose }) {
       }, 4000);
     } catch (err) {
       console.error('Error en registro facial:', err);
+      // Asegurarse de detener el overlay en caso de error
+      if (overlay) {
+        overlay.stop();
+        regOverlayRef.current = null;
+      }
       stopStream('register');
       setRegState('idle');
       
