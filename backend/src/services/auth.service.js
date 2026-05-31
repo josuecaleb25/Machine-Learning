@@ -4,11 +4,13 @@ import { sessionService } from './session.service.js';
 import { hashPassword, comparePassword } from '../utils/bcrypt.js';
 import {
   findDuplicateUser,
-  findMatchingUser,
+  evaluateFaceMatch,
   parseEmbedding,
+  formatSimilarityPct,
 } from '../utils/faceRecognition.js';
 import { toPublicUser } from '../utils/userMapper.js';
 import { AUTH_METHOD } from '../types/constants.js';
+import { logger } from '../utils/logger.js';
 import {
   ConflictError,
   ForbiddenError,
@@ -20,6 +22,14 @@ function resolveAuthMethod(current, incoming) {
   if (!current) return incoming;
   if (current === incoming) return current;
   return AUTH_METHOD.BOTH;
+}
+
+function logFaceCandidates(ranked) {
+  return ranked.map(({ user, similarity }) => ({
+    id: user.id,
+    nombre: user.nombre ?? user.email ?? '—',
+    similitud: formatSimilarityPct(similarity),
+  }));
 }
 
 export const authService = {
@@ -67,6 +77,11 @@ export const authService = {
       env.FACE_SIMILARITY_THRESHOLD
     );
     if (duplicate) {
+      logger.warn('[FACE REGISTER] Registro rechazado — rostro duplicado', {
+        candidato: duplicate.user.nombre ?? duplicate.user.id,
+        similitud: formatSimilarityPct(duplicate.similarity),
+        umbral: formatSimilarityPct(env.FACE_SIMILARITY_THRESHOLD),
+      });
       throw new ConflictError(
         'Este rostro ya está registrado en el sistema. No se permiten duplicados.'
       );
@@ -86,6 +101,11 @@ export const authService = {
       authMethod: AUTH_METHOD.FACIAL,
     });
 
+    logger.info('[FACE REGISTER] Registro exitoso', {
+      usuario: nombre,
+      id: user.id,
+    });
+
     const session = await sessionService.createSession(user.id);
     return { user, ...session };
   },
@@ -94,24 +114,75 @@ export const authService = {
     const embedding = parseEmbedding(facialEmbedding);
     const usersWithFace = await userRepository.findAllWithFacialEmbeddings();
 
-    const match = findMatchingUser(
+    const evaluation = evaluateFaceMatch(
       embedding,
       usersWithFace,
-      env.FACE_SIMILARITY_THRESHOLD
+      env.FACE_SIMILARITY_THRESHOLD,
+      env.FACE_SIMILARITY_MARGIN
     );
 
-    if (!match) {
-      throw new ForbiddenError(
-        'Acceso denegado: no se encontró coincidencia facial con el umbral requerido'
-      );
+    const candidates = logFaceCandidates(evaluation.ranked);
+
+    console.log('─── Intento de autenticación facial ───');
+    candidates.forEach((c, i) => {
+      console.log(`  ${i + 1}. ${c.nombre} → similitud: ${c.similitud}`);
+    });
+
+    if (!evaluation.accepted) {
+      const best = evaluation.best;
+      const bestPct = best ? formatSimilarityPct(best.similarity) : 'N/A';
+      const umbralPct = formatSimilarityPct(env.FACE_SIMILARITY_THRESHOLD);
+
+      let motivo;
+      if (evaluation.reason === 'no_users') {
+        motivo = 'No hay usuarios con rostro registrado';
+      } else if (evaluation.reason === 'below_threshold') {
+        motivo = `Similitud ${bestPct} por debajo del umbral ${umbralPct}`;
+      } else if (evaluation.reason === 'ambiguous') {
+        const secondPct = formatSimilarityPct(evaluation.second.similarity);
+        motivo = `Coincidencia ambigua: ${bestPct} vs ${secondPct} (margen insuficiente)`;
+      } else {
+        motivo = 'Coincidencia no confiable';
+      }
+
+      console.log(`  Resultado: DENEGADO — ${motivo}`);
+      console.log('───────────────────────────────────────');
+
+      logger.warn('[FACE AUTH] Acceso DENEGADO', {
+        motivo,
+        mejorCandidato: best
+          ? { nombre: best.user.nombre ?? best.user.id, similitud: bestPct }
+          : null,
+        umbral: umbralPct,
+        margen: formatSimilarityPct(env.FACE_SIMILARITY_MARGIN),
+        candidatos: candidates,
+      });
+
+      throw new ForbiddenError('Rostro no registrado en el sistema.');
     }
 
-    const publicUser = await userRepository.findById(match.user.id);
-    const session = await sessionService.createSession(match.user.id);
+    const { user, similarity } = evaluation;
+    const simPct = formatSimilarityPct(similarity);
+
+    console.log(
+      `  Usuario detectado: ${user.nombre ?? user.id} → similitud: ${simPct}`
+    );
+    console.log('  Resultado: ACCESO CONCEDIDO');
+    console.log('───────────────────────────────────────');
+
+    logger.info('[FACE AUTH] Acceso CONCEDIDO', {
+      usuario: user.nombre ?? user.id,
+      id: user.id,
+      similitud: simPct,
+      candidatos: candidates,
+    });
+
+    const publicUser = await userRepository.findById(user.id);
+    const session = await sessionService.createSession(user.id);
 
     return {
       user: publicUser,
-      similarity: match.similarity,
+      similarity,
       ...session,
     };
   },

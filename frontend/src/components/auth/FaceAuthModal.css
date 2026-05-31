@@ -19,10 +19,11 @@
   --ease: cubic-bezier(0.76, 0, 0.24, 1);
 }
 
-*, *::before, *::after {
+.face-auth-overlay,
+.face-auth-overlay *,
+.face-auth-overlay *::before,
+.face-auth-overlay *::after {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
 .face-auth-overlay {
@@ -30,9 +31,12 @@
   inset: 0;
   z-index: 100;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: max(16px, env(safe-area-inset-top)) 12px max(24px, env(safe-area-inset-bottom));
   background: var(--cream);
   font-family: 'DM Sans', sans-serif;
 }
@@ -67,8 +71,8 @@
 }
 
 .face-blob-1 {
-  width: 500px;
-  height: 500px;
+  width: min(500px, 80vw);
+  height: min(500px, 80vw);
   background: radial-gradient(circle, rgba(116,198,157,0.18) 0%, transparent 70%);
   top: -120px;
   right: -100px;
@@ -76,8 +80,8 @@
 }
 
 .face-blob-2 {
-  width: 400px;
-  height: 400px;
+  width: min(400px, 70vw);
+  height: min(400px, 70vw);
   background: radial-gradient(circle, rgba(45,106,79,0.10) 0%, transparent 70%);
   bottom: -100px;
   left: -80px;
@@ -85,8 +89,8 @@
 }
 
 .face-blob-3 {
-  width: 300px;
-  height: 300px;
+  width: min(300px, 55vw);
+  height: min(300px, 55vw);
   background: radial-gradient(circle, rgba(183,228,199,0.20) 0%, transparent 70%);
   top: 40%;
   left: 10%;
@@ -103,7 +107,10 @@
 .face-stage {
   position: relative;
   z-index: 10;
-  width: min(480px, 92vw);
+  width: min(480px, 100%);
+  max-width: 480px;
+  margin: auto;
+  flex-shrink: 0;
   perspective: 1200px;
 }
 
@@ -115,8 +122,8 @@
   border: 1px solid rgba(255,255,255,0.9);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  padding: 48px 44px;
-  overflow: hidden;
+  padding: clamp(24px, 5vw, 48px) clamp(20px, 4vw, 44px);
+  overflow: visible;
   position: relative;
 }
 
@@ -193,12 +200,15 @@
 /* ── Panel wrapper ── */
 .face-panels {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+  min-height: 0;
 }
 
 .face-panel {
   transition: transform 0.75s var(--ease), opacity 0.75s var(--ease), filter 0.75s var(--ease);
   will-change: transform, opacity;
+  display: flex;
+  flex-direction: column;
 }
 
 .face-panel.hidden-left {
@@ -257,7 +267,7 @@
 /* ── Headings ── */
 .face-panel-title {
   font-family: 'Playfair Display', serif;
-  font-size: 32px;
+  font-size: clamp(24px, 5vw, 32px);
   font-weight: 400;
   color: var(--ink);
   letter-spacing: -0.5px;
@@ -269,7 +279,7 @@
   font-size: 14px;
   color: var(--ink-3);
   font-weight: 300;
-  margin-bottom: 32px;
+  margin-bottom: clamp(16px, 3vw, 32px);
   letter-spacing: 0.1px;
 }
 
@@ -318,11 +328,13 @@
   position: relative;
   width: 100%;
   aspect-ratio: 1;
-  max-width: 320px;
-  margin: 0 auto 28px;
+  max-width: min(280px, 55vw);
+  margin: 0 auto clamp(12px, 2vw, 28px);
   border-radius: 50%;
   overflow: visible;
   transition: all 0.4s var(--ease);
+  flex-shrink: 0;
+  container-type: size;
 }
 
 .face-camera-wrapper.scanning .face-scan-overlay {
@@ -550,6 +562,9 @@
   inset: -2px;
   border-radius: 50%;
   animation: scanRotate 3s linear infinite;
+  /* Radio dinámico: 50% del contenedor padre */
+  width: 100%;
+  height: 100%;
 }
 
 .face-scan-dot {
@@ -564,15 +579,15 @@
 }
 
 .face-scan-dot:nth-child(1) {
-  transform: translate(-50%, -50%) rotate(0deg) translateY(-126px);
+  transform: translate(-50%, -50%) rotate(0deg) translateY(calc(-50cqmin - 4px));
 }
 
 .face-scan-dot:nth-child(2) {
-  transform: translate(-50%, -50%) rotate(120deg) translateY(-126px);
+  transform: translate(-50%, -50%) rotate(120deg) translateY(calc(-50cqmin - 4px));
 }
 
 .face-scan-dot:nth-child(3) {
-  transform: translate(-50%, -50%) rotate(240deg) translateY(-126px);
+  transform: translate(-50%, -50%) rotate(240deg) translateY(calc(-50cqmin - 4px));
 }
 
 /* ── Corner brackets ── */
@@ -691,7 +706,7 @@
   font-weight: 400;
   letter-spacing: 0.1px;
   line-height: 1.5;
-  margin-bottom: 24px;
+  margin-bottom: clamp(12px, 2vw, 24px);
 }
 
 /* ── Buttons ── */
@@ -762,7 +777,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  margin: 20px 0;
+  margin: clamp(12px, 2vw, 20px) 0;
 }
 
 .face-divider-line {
@@ -782,10 +797,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 6px;
-  margin-top: 24px;
+  margin-top: clamp(16px, 2.5vw, 24px);
   font-size: 13.5px;
   color: var(--ink-4);
+  flex-shrink: 0;
 }
 
 .face-switch-link {
@@ -872,7 +889,7 @@
 /* ── Notification toast ── */
 .face-toast {
   position: fixed;
-  bottom: 32px;
+  bottom: max(32px, env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%) translateY(80px);
   background: var(--ink);
@@ -886,7 +903,9 @@
   transition: transform 0.4s var(--ease), opacity 0.4s;
   opacity: 0;
   pointer-events: none;
-  white-space: nowrap;
+  white-space: normal;
+  text-align: center;
+  max-width: min(90vw, 420px);
 }
 
 .face-toast.show {
@@ -994,34 +1013,115 @@
 }
 
 /* ── Responsive ── */
-@media (max-width: 520px) {
-  .face-card {
-    padding: 36px 28px;
+
+/* Pantallas con poca altura (1366×768, laptops pequeñas) */
+@media (max-height: 820px) {
+  .face-auth-overlay {
+    align-items: flex-start;
+    padding-top: 12px;
+    padding-bottom: 16px;
   }
-  .face-panel-title {
-    font-size: 27px;
+
+  .face-logo {
+    margin-bottom: 20px;
   }
+
+  .face-steps {
+    margin-bottom: 16px;
+  }
+
+  .face-panel-subtitle {
+    margin-bottom: 16px;
+  }
+
   .face-camera-wrapper {
-    max-width: 220px;
+    max-width: min(200px, 45vw);
+    margin-bottom: 12px;
+  }
+
+  .face-cam-status-text {
+    margin-top: -10px;
+    margin-bottom: 12px;
+  }
+
+  .face-confidence-block {
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+
+  .face-cam-label {
+    margin-bottom: 12px;
+    font-size: 12px;
+  }
+
+  .face-btn-primary {
+    padding: 13px;
+    font-size: 14px;
+  }
+
+  .face-eco-note {
+    margin-top: 12px;
+    font-size: 11px;
+  }
+
+  .face-alert {
+    margin-bottom: 16px;
+    padding: 12px 16px;
   }
 }
 
-@media (max-width: 480px) {
-  .face-stage {
-    width: 96vw;
+@media (max-height: 680px) {
+  .face-camera-wrapper {
+    max-width: min(160px, 40vw);
   }
+
+  .face-panel-title {
+    font-size: 22px;
+  }
+
+  .face-logo {
+    margin-bottom: 12px;
+  }
+
+  .face-divider {
+    margin: 10px 0;
+  }
+
+  .face-btn-ghost {
+    padding: 9px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 520px) {
   .face-card {
-    padding: 32px 24px;
+    padding: 28px 20px;
     border-radius: 20px;
   }
   .face-panel-title {
     font-size: 26px;
   }
   .face-camera-wrapper {
-    max-width: 200px;
+    max-width: min(200px, 52vw);
+  }
+}
+
+@media (max-width: 480px) {
+  .face-stage {
+    width: 100%;
+  }
+  .face-card {
+    padding: 24px 18px;
+    border-radius: 18px;
+  }
+  .face-panel-title {
+    font-size: 24px;
+  }
+  .face-camera-wrapper {
+    max-width: min(180px, 50vw);
   }
   .face-alert {
-    padding: 14px 16px;
+    padding: 12px 14px;
     gap: 10px;
   }
   .face-alert-title {
@@ -1029,5 +1129,24 @@
   }
   .face-alert-message {
     font-size: 12px;
+  }
+}
+
+/* Tablets en landscape */
+@media (max-width: 900px) and (max-height: 500px) {
+  .face-auth-overlay {
+    padding: 8px 12px;
+  }
+
+  .face-camera-wrapper {
+    max-width: 140px;
+  }
+
+  .face-logo {
+    margin-bottom: 8px;
+  }
+
+  .face-steps {
+    margin-bottom: 10px;
   }
 }

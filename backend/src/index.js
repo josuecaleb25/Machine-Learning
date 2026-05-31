@@ -21,6 +21,7 @@ async function start() {
     logger.info(`EcoVision API escuchando en http://localhost:${env.PORT}`);
     logger.info(`Documentación Swagger: http://localhost:${env.PORT}/api/docs`);
     logger.info(`Umbral facial (cosine): ${env.FACE_SIMILARITY_THRESHOLD}`);
+    logger.info(`Margen anti-ambigüedad facial: ${env.FACE_SIMILARITY_MARGIN}`);
 
     const shutdown = () => {
       server.close(() => process.exit(0));

@@ -3,7 +3,7 @@ const MESSAGES = {
   loginStarting: 'Iniciando reconocimiento facial. Por favor mire a la cámara.',
   loginScanning: 'Analizando su rostro. Manténgase quieto.',
   loginSuccess: (name) => `Bienvenido ${name}. Acceso concedido.`,
-  loginNotFound: 'Lo sentimos, su rostro no está registrado en nuestro sistema.',
+  loginNotFound: 'Usuario no registrado. Acceso denegado.',
   loginError: 'Error al iniciar sesión. Por favor intente de nuevo.',
   
   // Register
@@ -18,6 +18,8 @@ const MESSAGES = {
   cameraError: 'No se pudo acceder a la cámara. Verifique los permisos.',
   faceNotDetected: 'No se detecta ningún rostro. Acérquese a la cámara.',
   faceNotCentered: 'Por favor centre su rostro dentro del marco.',
+  faceMultiple: 'Solo debe haber una persona frente a la cámara.',
+  faceNotVisible: 'Asegúrese de que su rostro esté completamente visible.',
   
   // General
   pleaseWait: 'Por favor espere.',
@@ -172,9 +174,15 @@ export function speakFaceNotDetected() {
   speak(MESSAGES.faceNotDetected);
 }
 
-export function speakFaceNotCentered() {
+export function speakFaceNotCentered(reason = 'center') {
   console.log('🔊 Hablando: Rostro no centrado');
-  speak(MESSAGES.faceNotCentered);
+  const messages = {
+    center: MESSAGES.faceNotCentered,
+    multiple: MESSAGES.faceMultiple,
+    visibility: MESSAGES.faceNotVisible,
+    none: MESSAGES.faceNotDetected,
+  };
+  speak(messages[reason] ?? MESSAGES.faceNotCentered);
 }
 
 // ===== GENERAL =====

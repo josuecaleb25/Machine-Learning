@@ -9,23 +9,52 @@ const MODEL_URL =
   'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task';
 
 const NOSE_TIP_INDEX = 1;
+/** Proporción mínima del rostro respecto al frame */
+const MIN_FACE_SIZE_RATIO = 0.18;
 
 let landmarkerInstance = null;
 let loadPromise = null;
 
 export function analyzeFaceLandmarks(landmarks) {
   if (!landmarks?.length) {
-    return { detected: false, centered: false };
+    return { detected: false, centered: false, singleFace: true, fullyVisible: false };
+  }
+
+  if (landmarks.length > 1) {
+    return { detected: true, centered: false, singleFace: false, fullyVisible: false };
   }
 
   const points = landmarks[0];
   const nose = points[NOSE_TIP_INDEX];
-  if (!nose) return { detected: true, centered: false };
+  if (!nose) {
+    return { detected: true, centered: false, singleFace: true, fullyVisible: false };
+  }
+
+  const xs = points.map((p) => p.x);
+  const ys = points.map((p) => p.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const faceWidth = maxX - minX;
+  const faceHeight = maxY - minY;
 
   const dist = Math.hypot(nose.x - 0.5, nose.y - 0.5);
+  const centered = dist < 0.11;
+  const fullyVisible =
+    faceWidth >= MIN_FACE_SIZE_RATIO &&
+    faceHeight >= MIN_FACE_SIZE_RATIO &&
+    minX > 0.04 &&
+    minY > 0.04 &&
+    maxX < 0.96 &&
+    maxY < 0.96;
+
   return {
     detected: true,
-    centered: dist < 0.11,
+    centered,
+    singleFace: true,
+    fullyVisible,
+    faceSize: Math.max(faceWidth, faceHeight),
   };
 }
 
@@ -37,7 +66,7 @@ export async function loadMediaPipeFaceLandmarker() {
       const vision = await FilesetResolver.forVisionTasks(WASM_BASE);
       const options = {
         runningMode: 'VIDEO',
-        numFaces: 1,
+        numFaces: 2,
         outputFaceBlendshapes: false,
         outputFacialTransformationMatrixes: false,
       };
@@ -73,6 +102,8 @@ export function startLandmarkOverlay(video, canvas, options = {}) {
   let lastVideoTime = -1;
   let faceDetected = false;
   let faceCentered = false;
+  let faceSingle = true;
+  let faceFullyVisible = false;
   let stopped = false;
   let lastCenteredSpeak = 0;
 
@@ -85,22 +116,24 @@ export function startLandmarkOverlay(video, canvas, options = {}) {
     }
   };
 
-  const emitState = (detected, centered) => {
+  const emitState = (detected, centered, singleFace = true, fullyVisible = false) => {
     faceDetected = detected;
     faceCentered = centered;
-    onFrameState?.({ detected, centered });
+    faceSingle = singleFace;
+    faceFullyVisible = fullyVisible;
+    onFrameState?.({ detected, centered, singleFace, fullyVisible });
   };
 
   const drawResults = (results) => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (!results.faceLandmarks?.length) {
-      emitState(false, false);
+      emitState(false, false, true, false);
       return;
     }
 
     const quality = analyzeFaceLandmarks(results.faceLandmarks);
-    emitState(quality.detected, quality.centered);
+    emitState(quality.detected, quality.centered, quality.singleFace, quality.fullyVisible);
 
     const drawer = new DrawingUtils(ctx);
     const lineColor = quality.centered
@@ -168,7 +201,12 @@ export function startLandmarkOverlay(video, canvas, options = {}) {
     },
 
     getState() {
-      return { detected: faceDetected, centered: faceCentered };
+      return {
+        detected: faceDetected,
+        centered: faceCentered,
+        singleFace: faceSingle,
+        fullyVisible: faceFullyVisible,
+      };
     },
 
     waitForStableFace({ minMs = 1400, timeoutMs = 18000, onNotCentered } = {}) {
@@ -182,7 +220,16 @@ export function startLandmarkOverlay(video, canvas, options = {}) {
             return;
           }
 
-          if (faceDetected && faceCentered) {
+          if (!faceSingle) {
+            stableSince = null;
+            if (onNotCentered) {
+              const now = Date.now();
+              if (now - lastCenteredSpeak > 4000) {
+                lastCenteredSpeak = now;
+                onNotCentered('multiple');
+              }
+            }
+          } else if (faceDetected && faceCentered && faceFullyVisible) {
             if (!stableSince) stableSince = Date.now();
             if (Date.now() - stableSince >= minMs) {
               resolve();
@@ -190,11 +237,12 @@ export function startLandmarkOverlay(video, canvas, options = {}) {
             }
           } else {
             stableSince = null;
-            if (faceDetected && !faceCentered && onNotCentered) {
+            if (faceDetected && onNotCentered) {
               const now = Date.now();
               if (now - lastCenteredSpeak > 4000) {
                 lastCenteredSpeak = now;
-                onNotCentered();
+                if (!faceCentered) onNotCentered('center');
+                else if (!faceFullyVisible) onNotCentered('visibility');
               }
             }
           }
@@ -203,7 +251,7 @@ export function startLandmarkOverlay(video, canvas, options = {}) {
             const now = Date.now();
             if (now - lastCenteredSpeak > 4000) {
               lastCenteredSpeak = now;
-              onNotCentered();
+              onNotCentered('none');
             }
           }
 

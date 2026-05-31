@@ -11,7 +11,9 @@ const envSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   JWT_SECRET: z.string().min(16),
   JWT_EXPIRES_IN: z.string().default('7d'),
-  FACE_SIMILARITY_THRESHOLD: z.coerce.number().min(0).max(1).default(0.85),
+  FACE_SIMILARITY_THRESHOLD: z.coerce.number().min(0).max(1).default(0.92),
+  /** Margen mínimo entre el 1.º y 2.º candidato para evitar falsos positivos */
+  FACE_SIMILARITY_MARGIN: z.coerce.number().min(0).max(1).default(0.06),
   // Una o varias URLs separadas por coma (sin barra final)
   FRONTEND_URL: z.string().min(1).default('http://localhost:5173'),
 });

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { loginFace, registerFace } from '../../lib/auth.js';
-import { captureFaceEmbedding } from '../../lib/faceEmbedding.js';
+import { captureFaceEmbedding, captureRobustFaceEmbedding } from '../../lib/faceEmbedding.js';
 import { startLandmarkOverlay } from '../../lib/faceLandmarksMediaPipe.js';
 import { loadAllFaceModels } from '../../lib/loadFaceModels.js';
 import {
@@ -32,7 +32,7 @@ function isUserNotRegisteredError(err) {
   return (
     err?.status === 403 ||
     err?.status === 404 ||
-    /no está registrado|acceso denegado|no se encontró coincidencia|not found|not registered|no match/i.test(err?.message ?? '')
+    /no está registrado|rostro no registrado|acceso denegado|no se encontró coincidencia|not found|not registered|no match/i.test(err?.message ?? '')
   );
 }
 
@@ -78,6 +78,14 @@ export default function FaceAuthModal({ isOpen, onClose }) {
 
   // Particle canvas
   const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -295,6 +303,11 @@ export default function FaceAuthModal({ isOpen, onClose }) {
 
       const data = await loginFace({ facialEmbedding });
       const sim = data.similarity ?? null;
+      const simPct = sim != null ? (sim * 100).toFixed(1) : 'N/A';
+      console.log(`🔐 Similitud facial obtenida: ${simPct}%`);
+      console.log(`🔐 Usuario detectado: ${data.user?.nombre ?? '—'}`);
+      console.log(`🔐 Resultado: ACCESO CONCEDIDO (${simPct}% ≥ umbral)`);
+
       setSimilarity(sim);
       setLoginProgress(100);
       setLoginState('success');
@@ -312,11 +325,12 @@ export default function FaceAuthModal({ isOpen, onClose }) {
       setSimilarity(null);
 
       if (isUserNotRegisteredError(err)) {
+        console.log('🔐 Resultado: ACCESO DENEGADO — rostro no registrado o similitud insuficiente');
         setLoginState('not-found');
         showFaceAlert(
           'error',
-          'Usuario no registrado',
-          'Lo sentimos, su rostro no está registrado en nuestro sistema.'
+          'Acceso denegado',
+          'Rostro no registrado en el sistema.'
         );
         speakLoginNotFound();
         setTimeout(() => {
@@ -382,10 +396,11 @@ export default function FaceAuthModal({ isOpen, onClose }) {
       overlay.stop();
       regOverlayRef.current = null;
 
+      setRegState('capturing');
       speakRegisterProcessing();
 
       await new Promise((r) => setTimeout(r, 150));
-      const facialEmbedding = await captureFaceEmbedding(regVideoRef.current);
+      const facialEmbedding = await captureRobustFaceEmbedding(regVideoRef.current);
       
       if (!facialEmbedding || facialEmbedding.length === 0) {
         throw new Error('No se pudo capturar el embedding facial. Por favor intente de nuevo.');
@@ -489,12 +504,14 @@ export default function FaceAuthModal({ isOpen, onClose }) {
   const getRegStatusText = () => {
     if (regState === 'idle') return 'Listo para escanear';
     if (regState === 'scanning') return 'Capturando muestra';
+    if (regState === 'capturing') return 'Generando perfil facial';
     if (regState === 'success') return 'Face ID guardado';
     return 'Listo para escanear';
   };
 
   const getRegCamText = () => {
     if (regState === 'scanning') return 'Capturando…';
+    if (regState === 'capturing') return 'Procesando 5 muestras…';
     if (regState === 'success') return 'Registro completado ✦';
     return 'Listo para capturar…';
   };
@@ -780,10 +797,11 @@ export default function FaceAuthModal({ isOpen, onClose }) {
               <button
                 className="face-btn-primary"
                 onClick={startFaceRegister}
-                disabled={regState === 'scanning' || regState === 'success' || regState === 'already-exists'}
+                disabled={regState === 'scanning' || regState === 'capturing' || regState === 'success' || regState === 'already-exists'}
               >
                 {regState === 'idle' && 'Registrar Face ID'}
                 {regState === 'scanning' && 'Capturando…'}
+                {regState === 'capturing' && 'Procesando muestras…'}
                 {regState === 'success' && `✓ ${regName} registrado`}
                 {regState === 'already-exists' && 'Rostro ya registrado'}
               </button>
