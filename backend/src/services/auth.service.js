@@ -71,16 +71,21 @@ export const authService = {
     const embedding = parseEmbedding(facialEmbedding);
     const usersWithFace = await userRepository.findAllWithFacialEmbeddings();
 
+    // Para registro: usar threshold más bajo para evitar que la misma persona se registre dos veces
+    // pero no tan bajo que rechace personas diferentes
+    // 0.85 = si la similitud es >= 85%, consideramos que es la misma persona (duplicado)
+    const DUPLICATE_THRESHOLD = 0.85;
+    
     const duplicate = findDuplicateUser(
       embedding,
       usersWithFace,
-      env.FACE_SIMILARITY_THRESHOLD
+      DUPLICATE_THRESHOLD
     );
     if (duplicate) {
       logger.warn('[FACE REGISTER] Registro rechazado — rostro duplicado', {
         candidato: duplicate.user.nombre ?? duplicate.user.id,
         similitud: formatSimilarityPct(duplicate.similarity),
-        umbral: formatSimilarityPct(env.FACE_SIMILARITY_THRESHOLD),
+        umbral: formatSimilarityPct(DUPLICATE_THRESHOLD),
       });
       throw new ConflictError(
         'Este rostro ya está registrado en el sistema. No se permiten duplicados.'
@@ -215,10 +220,13 @@ export const authService = {
     const usersWithFace = await userRepository.findAllWithFacialEmbeddings();
     const others = usersWithFace.filter((u) => u.id !== userId);
 
+    // Usar el mismo threshold de 0.85 para detectar duplicados
+    const DUPLICATE_THRESHOLD = 0.85;
+    
     const duplicate = findDuplicateUser(
       embedding,
       others,
-      env.FACE_SIMILARITY_THRESHOLD
+      DUPLICATE_THRESHOLD
     );
     if (duplicate) {
       throw new ConflictError('Este rostro ya pertenece a otro usuario');
