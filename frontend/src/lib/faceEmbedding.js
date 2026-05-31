@@ -2,8 +2,6 @@ import * as faceapi from '@vladmandic/face-api';
 
 const MODEL_BASE = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model';
 
-/** Brillo promedio mínimo del frame (0–255) */
-const MIN_BRIGHTNESS = 55;
 /** Proporción mínima del rostro respecto al frame (ancho) */
 const MIN_FACE_RATIO = 0.22;
 /** Similitud mínima entre muestras del mismo registro */
@@ -50,22 +48,6 @@ function getDetectorOptions(config) {
     });
   }
   return new faceapi.SsdMobilenetv1Options({ minConfidence: config.minConfidence });
-}
-
-/**
- * Calcula el brillo promedio de un canvas (canal Y aproximado).
- * @param {HTMLCanvasElement} canvas
- * @returns {number} 0–255
- */
-export function measureFrameBrightness(canvas) {
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  const { data, width, height } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  let sum = 0;
-  const pixels = width * height;
-  for (let i = 0; i < data.length; i += 4) {
-    sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-  }
-  return sum / pixels;
 }
 
 /**
@@ -138,17 +120,10 @@ async function detectSingleFace(source, config) {
 }
 
 /**
- * Valida iluminación, un solo rostro y visibilidad completa.
- * @returns {{ valid: boolean, reason?: string, detection?: object, brightness?: number }}
+ * Valida un solo rostro y visibilidad completa.
+ * @returns {{ valid: boolean, reason?: string, detection?: object }}
  */
-export function validateFaceCapture(source, detections, brightness) {
-  if (brightness < MIN_BRIGHTNESS) {
-    return {
-      valid: false,
-      reason: `Iluminación insuficiente (${Math.round(brightness)}/255). Mejore la luz del entorno.`,
-    };
-  }
-
+export function validateFaceCapture(source, detections) {
   if (!detections?.length) {
     return { valid: false, reason: 'No se detectó ningún rostro. Centre su rostro en el marco.' };
   }
@@ -186,7 +161,7 @@ export function validateFaceCapture(source, detections, brightness) {
     };
   }
 
-  return { valid: true, detection, brightness };
+  return { valid: true, detection };
 }
 
 /**
@@ -214,11 +189,8 @@ export async function captureFaceEmbedding(video, maxRetries = 4) {
       );
 
       const source = snapshotVideoFrame(video);
-      const brightness = measureFrameBrightness(source);
-      console.log(`💡 Brillo del frame: ${Math.round(brightness)}/255`);
-
       const allDetections = await detectAllFaces(source, config);
-      const validation = validateFaceCapture(source, allDetections, brightness);
+      const validation = validateFaceCapture(source, allDetections);
 
       if (!validation.valid) {
         console.warn(`⚠️ Intento ${attempt}: ${validation.reason}`);
@@ -243,8 +215,7 @@ export async function captureFaceEmbedding(video, maxRetries = 4) {
   }
 
   throw new Error(
-    'No se detectó un rostro válido. Asegúrate de tener buena iluminación, ' +
-      'centra tu rostro en el marco y que solo haya una persona visible.'
+    'No se detectó un rostro válido. Centre su rostro en el marco y asegúrese de que solo haya una persona visible.'
   );
 }
 
