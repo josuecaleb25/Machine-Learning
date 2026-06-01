@@ -1,6 +1,8 @@
 /* Dashboard Wrapper */
 .dashboard-wrapper {
-  min-height: 100vh;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
   background: #fcf9f8;
   background-image: 
     radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.05) 0px, transparent 50%),
@@ -9,24 +11,32 @@
   color: #1c1b1b;
 }
 
+/* Main column (topbar + content) */
+.dashboard-shell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
 /* Sidebar */
 .sidebar {
-  position: fixed;
-  left: 0;
-  top: 0;
   width: 72px;
   height: 100vh;
+  flex-shrink: 0;
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
   border-right: 1px solid rgba(0, 108, 73, 0.1);
-  box-shadow: 0 8px 32px rgba(0, 108, 73, 0.05);
+  box-shadow: 2px 0 20px rgba(0, 108, 73, 0.05);
   padding: 8px;
   display: flex;
   flex-direction: column;
   z-index: 50;
   overflow: hidden;
   transition: width 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+  /* NO position:fixed — empuja el contenido */
 }
 
 .sidebar:hover {
@@ -92,6 +102,11 @@
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
 }
 
 .nav-item:hover {
@@ -111,6 +126,12 @@
   flex-shrink: 0;
 }
 
+.nav-svg-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
 /* Texto de los nav-items oculto hasta hover del sidebar */
 .nav-item > span:not(.material-symbols-outlined) {
   opacity: 0;
@@ -122,51 +143,6 @@
   opacity: 1;
   transform: translateX(0);
 }
-
-.sidebar-action {
-  padding: 16px;
-  overflow: hidden;
-}
-
-.btn-new-report {
-  width: 100%;
-  background: #006c49;
-  color: white;
-  padding: 12px;
-  border-radius: 12px;
-  border: none;
-  font-weight: 600;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: opacity 0.2s;
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.btn-new-report:hover {
-  opacity: 0.9;
-}
-
-.btn-new-report .material-symbols-outlined {
-  font-size: 20px;
-  flex-shrink: 0;
-}
-
-.btn-new-report > span:not(.material-symbols-outlined) {
-  opacity: 0;
-  transform: translateX(-6px);
-  transition: opacity 0.25s ease 0.05s, transform 0.25s ease 0.05s;
-}
-
-.sidebar:hover .btn-new-report > span:not(.material-symbols-outlined) {
-  opacity: 1;
-  transform: translateX(0);
-}
-
 .sidebar-footer {
   margin-top: auto;
   border-top: 1px solid rgba(0, 108, 73, 0.1);
@@ -223,13 +199,13 @@
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  padding: 16px 64px 16px 104px;
+  padding: 16px 64px;
   background: rgba(252, 249, 248, 0.8);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border-bottom: 1px solid rgba(0, 108, 73, 0.1);
+  flex-shrink: 0;
 }
-
 .topbar-left {
   display: flex;
   align-items: center;
@@ -328,15 +304,19 @@
 
 /* Main Content */
 .main-content {
-  margin-left: 72px;
-  min-height: 100vh;
-  transition: margin-left 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .content-container {
   padding: 40px 64px;
   max-width: 1440px;
   margin: 0 auto;
+  width: 100%;
 }
 
 /* Welcome Section */
@@ -782,6 +762,46 @@
   margin-top: 4px;
 }
 
+/* Placeholder views */
+.dashboard-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  text-align: center;
+  gap: 12px;
+  color: rgba(28, 27, 27, 0.6);
+}
+
+.dashboard-placeholder .material-symbols-outlined {
+  font-size: 48px;
+  color: #006c49;
+  opacity: 0.5;
+}
+
+.dashboard-placeholder h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1c1b1b;
+}
+
+.dashboard-back-btn {
+  margin-top: 16px;
+  padding: 10px 20px;
+  background: #006c49;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.dashboard-back-btn:hover {
+  opacity: 0.9;
+}
+
 /* FAB */
 .fab {
   position: fixed;
@@ -834,10 +854,6 @@
 
   .search-box {
     display: none;
-  }
-
-  .main-content {
-    margin-left: 0;
   }
 
   .content-container {
