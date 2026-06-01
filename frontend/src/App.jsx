@@ -8,13 +8,13 @@ import Metas from './components/sections/Metas';
 import Footer from './components/layout/Footer';
 import PollenCanvas from './components/layout/PollenCanvas';
 import MobileMenu from './components/layout/MobileMenu';
-import FaceAuthModal from './components/auth/FaceAuthModal';
+import AuthModal from './components/auth/AuthModal';
 import { AuthProvider } from './context/AuthContext.jsx';
 import './styles/global.css';
 
 function AppContent() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isFaceAuthOpen, setIsFaceAuthOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   useEffect(() => {
     // Parallax and Reveal Logic
@@ -89,16 +89,16 @@ function AppContent() {
       <PollenCanvas />
       <Navbar 
         onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        onAuthClick={() => setIsFaceAuthOpen(true)}
+        onAuthClick={() => setIsAuthOpen(true)}
       />
       <MobileMenu 
         isOpen={isMobileMenuOpen} 
         onClose={() => setIsMobileMenuOpen(false)}
-        onAuthClick={() => setIsFaceAuthOpen(true)}
+        onAuthClick={() => setIsAuthOpen(true)}
       />
-      <FaceAuthModal 
-        isOpen={isFaceAuthOpen}
-        onClose={() => setIsFaceAuthOpen(false)}
+      <AuthModal 
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
       />
       <Hero />
       <Metodologia />

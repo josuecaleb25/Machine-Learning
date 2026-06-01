@@ -1,35 +1,25 @@
-import { motion } from 'framer-motion';
-
-export default function FaceConfidenceBar({ progress, similarity, visible, label }) {
+export default function FaceConfidenceBar({ visible, progress, similarity }) {
   if (!visible) return null;
 
-  const pct = similarity != null ? Math.round(similarity * 100) : Math.round(progress);
-  const fillWidth = similarity != null ? Math.min(100, pct) : Math.min(100, progress);
+  const simPct = similarity != null ? (similarity * 100).toFixed(1) : null;
 
   return (
-    <motion.div
-      className="face-confidence-block"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-    >
+    <div className="face-confidence-block">
       <div className="face-confidence-header">
-        <span>{label ?? 'Confianza de reconocimiento'}</span>
-        <strong>{pct}%</strong>
+        <span>Confianza biométrica</span>
+        {simPct != null && <strong>{simPct}%</strong>}
       </div>
       <div className="face-confidence-track">
-        <motion.div
+        <div
           className="face-confidence-fill"
-          initial={{ width: 0 }}
-          animate={{ width: `${fillWidth}%` }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
+          style={{ width: `${progress}%` }}
         />
       </div>
-      {similarity != null && (
+      {simPct != null && (
         <p className="face-confidence-sub">
-          Similitud facial: {(similarity * 100).toFixed(1)}% — umbral mínimo: 92%
+          Similitud coseno: {simPct}%
         </p>
       )}
-    </motion.div>
+    </div>
   );
 }

@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { loginFace, registerFace } from '../../lib/auth.js';
 import { captureFaceEmbedding, captureRobustFaceEmbedding } from '../../lib/faceEmbedding.js';
@@ -43,10 +42,10 @@ function isUserAlreadyRegisteredError(err) {
   );
 }
 
-export default function FaceAuthModal({ isOpen, onClose }) {
+export default function FaceAuthModal({ isOpen, onClose, initialPanel = 'login', onGoToManualLogin, onGoToManualRegister }) {
   const { loginWithSession } = useAuth();
 
-  const [currentPanel, setCurrentPanel] = useState('login');
+  const [currentPanel, setCurrentPanel] = useState(initialPanel);
   const [loginState, setLoginState] = useState('idle');
   const [regState, setRegState] = useState('idle');
 
@@ -75,9 +74,12 @@ export default function FaceAuthModal({ isOpen, onClose }) {
   const regStreamRef = useRef(null);
   const loginOverlayRef = useRef(null);
   const regOverlayRef = useRef(null);
-
-  // Particle canvas
-  const canvasRef = useRef(null);
+  const webglCanvasRef  = useRef(null);
+  const dotsCanvasRef   = useRef(null);
+  const linesCanvasRef  = useRef(null);
+  const leavesCanvasRef = useRef(null);
+  const cursorGlowRef   = useRef(null);
+  const faceCardRef     = useRef(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -98,8 +100,8 @@ export default function FaceAuthModal({ isOpen, onClose }) {
 
   useEffect(() => {
     if (!isOpen) resetModal();
+    else setCurrentPanel(initialPanel);
   }, [isOpen]);
-
   // Progress bar animation for login
   useEffect(() => {
     if (loginState !== 'scanning' && loginState !== 'processing') return;
@@ -113,59 +115,160 @@ export default function FaceAuthModal({ isOpen, onClose }) {
     return () => clearInterval(id);
   }, [loginState, loginFrame]);
 
-  // Particle animation
+  // ── WebGL organic background ──
   useEffect(() => {
-    if (!isOpen || !canvasRef.current) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    let particles = [];
-    let animationId;
-
-    function resize() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
+    if (!isOpen || !webglCanvasRef.current) return;
+    const wc = webglCanvasRef.current;
+    const gl = wc.getContext('webgl', { antialias: true, alpha: false });
+    if (!gl) return;
+    function resize() { wc.width = innerWidth; wc.height = innerHeight; gl.viewport(0,0,wc.width,wc.height); }
     resize();
     window.addEventListener('resize', resize);
+    const VS = `attribute vec2 p;void main(){gl_Position=vec4(p,0,1);}`;
+    const FS = `precision highp float;
+uniform float T;uniform vec2 R;
+float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float sn(vec2 p){vec2 i=floor(p),f=fract(p),u=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),u.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),u.x),u.y);}
+float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<6;i++){v+=a*sn(p);p*=2.1;a*=.5;}return v;}
+void main(){
+  vec2 uv=gl_FragCoord.xy/R;vec2 q=uv*2.-1.;q.x*=R.x/R.y;
+  float t=T*.09;
+  float n1=fbm(q*1.1+vec2(t*.2,t*.15));
+  float n2=fbm(q*1.8-vec2(t*.12,t*.25)+n1*.5);
+  float n3=fbm(q*.6+vec2(t*.07,-t*.18)+n2*.4);
+  float f=n1*.5+n2*.3+n3*.2;
+  vec3 c0=vec3(.957,.965,.953);vec3 c1=vec3(.933,.949,.925);
+  vec3 c2=vec3(.906,.929,.894);vec3 c3=vec3(.875,.906,.859);vec3 c4=vec3(.922,.941,.910);
+  vec3 col=c0;
+  col=mix(col,c1,smoothstep(.0,.3,f));col=mix(col,c2,smoothstep(.25,.52,f));
+  col=mix(col,c3,smoothstep(.48,.72,f));col=mix(col,c4,smoothstep(.70,.92,f));
+  col=mix(col,c1,smoothstep(.90,1.,f));
+  float vg=smoothstep(0.,.9,length(q*.55));col=mix(col,c0,(.98-vg)*.2);
+  col+=sn(q*22.+T*.5)*.006;
+  gl_FragColor=vec4(col,1.);
+}`;
+    function mkShader(type, src) { const s = gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s); return s; }
+    const pr = gl.createProgram();
+    gl.attachShader(pr, mkShader(gl.VERTEX_SHADER, VS));
+    gl.attachShader(pr, mkShader(gl.FRAGMENT_SHADER, FS));
+    gl.linkProgram(pr); gl.useProgram(pr);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+    const ap = gl.getAttribLocation(pr,'p');
+    gl.enableVertexAttribArray(ap); gl.vertexAttribPointer(ap,2,gl.FLOAT,false,0,0);
+    const uT = gl.getUniformLocation(pr,'T'), uR = gl.getUniformLocation(pr,'R');
+    let rafId;
+    function loop(ts) { gl.uniform1f(uT,ts*.001); gl.uniform2f(uR,wc.width,wc.height); gl.drawArrays(gl.TRIANGLE_STRIP,0,4); rafId=requestAnimationFrame(loop); }
+    rafId = requestAnimationFrame(loop);
+    return () => { cancelAnimationFrame(rafId); window.removeEventListener('resize',resize); };
+  }, [isOpen]);
 
-    function createParticle() {
-      return {
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        r: Math.random() * 2.5 + 0.5,
-        dx: (Math.random() - 0.5) * 0.3,
-        dy: -Math.random() * 0.4 - 0.1,
-        alpha: Math.random() * 0.5 + 0.1,
-        life: 0,
-        maxLife: Math.random() * 300 + 150,
-        green: Math.floor(Math.random() * 80 + 120),
-      };
+  // ── Dots ──
+  useEffect(() => {
+    if (!isOpen || !dotsCanvasRef.current) return;
+    const dc = dotsCanvasRef.current;
+    const dx = dc.getContext('2d');
+    const dots = Array.from({length:80}, () => ({ x:Math.random()*2000, y:Math.random()*1000, r:Math.random()*1.8+.5, a:Math.random()*.25+.05 }));
+    function draw() { dx.clearRect(0,0,dc.width,dc.height); dots.forEach(d=>{ dx.beginPath(); dx.arc(d.x,d.y,d.r,0,Math.PI*2); dx.fillStyle=`rgba(100,130,90,${d.a})`; dx.fill(); }); }
+    function resize() { dc.width=innerWidth; dc.height=innerHeight; draw(); }
+    resize();
+    window.addEventListener('resize', resize);
+    return () => window.removeEventListener('resize', resize);
+  }, [isOpen]);
+
+  // ── Lines + Rings + Leaves ──
+  useEffect(() => {
+    if (!isOpen || !linesCanvasRef.current || !leavesCanvasRef.current) return;
+    const lc = linesCanvasRef.current, lx = lc.getContext('2d');
+    const fc = leavesCanvasRef.current, fx = fc.getContext('2d');
+    function resize() { lc.width=fc.width=innerWidth; lc.height=fc.height=innerHeight; }
+    resize();
+    window.addEventListener('resize', resize);
+    const lineCfgs = [
+      {yBase:.12,amp:35,freq:.0018,speed:.25,phase:0,  alpha:.12,color:'100,140,85'},
+      {yBase:.28,amp:25,freq:.0022,speed:.18,phase:1.2,alpha:.09,color:'120,155,100'},
+      {yBase:.45,amp:40,freq:.0015,speed:.22,phase:2.4,alpha:.07,color:'90,125,75'},
+      {yBase:.62,amp:30,freq:.002, speed:.28,phase:.8, alpha:.10,color:'110,145,90'},
+      {yBase:.78,amp:20,freq:.0025,speed:.20,phase:1.8,alpha:.08,color:'100,135,82'},
+      {yBase:.90,amp:45,freq:.0012,speed:.15,phase:3.1,alpha:.06,color:'95,128,78'},
+      {yBase:.05,amp:60,freq:.001, speed:.12,phase:.5, alpha:.05,color:'130,160,110'},
+      {yBase:.95,amp:55,freq:.0014,speed:.16,phase:2.0,alpha:.05,color:'115,148,95'},
+    ];
+    const leaves = Array.from({length:18}, () => ({
+      x:Math.random()*innerWidth, y:Math.random()*innerHeight,
+      size:Math.random()*30+15, angle:Math.random()*Math.PI*2,
+      angleSpeed:(Math.random()-.5)*.003,
+      vx:(Math.random()-.5)*.15, vy:(Math.random()-.5)*.12,
+      opacity:Math.random()*.35+.08, variant:Math.floor(Math.random()*3), t:Math.random()*100,
+    }));
+    function drawLeaf(ctx,cx,cy,size,angle,opacity,variant) {
+      ctx.save(); ctx.translate(cx,cy); ctx.rotate(angle); ctx.globalAlpha=opacity;
+      const s=size;
+      if(variant===0){
+        ctx.beginPath(); ctx.moveTo(0,s*.5); ctx.bezierCurveTo(s*.55,s*.3,s*.6,-s*.2,0,-s*.5); ctx.bezierCurveTo(-s*.6,-s*.2,-s*.55,s*.3,0,s*.5);
+        ctx.fillStyle='rgba(100,140,85,0.18)'; ctx.fill(); ctx.strokeStyle='rgba(80,120,65,0.3)'; ctx.lineWidth=.7; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0,s*.5); ctx.lineTo(0,-s*.5); ctx.strokeStyle='rgba(80,120,65,0.25)'; ctx.lineWidth=.6; ctx.stroke();
+        for(let i=-3;i<=3;i++){ if(i===0)continue; const py=i*(s*.15),px=s*.35*Math.sign(i)*(1-Math.abs(i)/5); ctx.beginPath(); ctx.moveTo(0,py); ctx.lineTo(px,py-s*.05); ctx.strokeStyle='rgba(80,120,65,0.15)'; ctx.lineWidth=.5; ctx.stroke(); }
+      } else if(variant===1){
+        ctx.beginPath(); ctx.moveTo(0,s*.55); ctx.bezierCurveTo(s*.7,s*.4,s*.8,-s*.1,s*.1,-s*.5); ctx.bezierCurveTo(0,-s*.6,-s*.1,-s*.6,-s*.1,-s*.5); ctx.bezierCurveTo(-s*.8,-s*.1,-s*.7,s*.4,0,s*.55);
+        ctx.fillStyle='rgba(120,155,100,0.14)'; ctx.fill(); ctx.strokeStyle='rgba(90,130,70,0.25)'; ctx.lineWidth=.7; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0,s*.55); ctx.bezierCurveTo(s*.1,0,0,-s*.3,0,-s*.5); ctx.strokeStyle='rgba(90,130,70,0.18)'; ctx.lineWidth=.5; ctx.stroke();
+      } else {
+        ctx.beginPath(); ctx.moveTo(0,s*.6); ctx.bezierCurveTo(s*.3,s*.2,s*.25,-s*.3,0,-s*.6); ctx.bezierCurveTo(-s*.25,-s*.3,-s*.3,s*.2,0,s*.6);
+        ctx.fillStyle='rgba(110,148,88,0.13)'; ctx.fill(); ctx.strokeStyle='rgba(85,122,65,0.22)'; ctx.lineWidth=.6; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0,s*.6); ctx.lineTo(0,-s*.6); ctx.strokeStyle='rgba(85,122,65,0.18)'; ctx.lineWidth=.5; ctx.stroke();
+      }
+      ctx.restore();
     }
-
-    for (let i = 0; i < 60; i++) particles.push(createParticle());
-
-    function animParticles() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles.forEach((p, i) => {
-        p.x += p.dx;
-        p.y += p.dy;
-        p.life++;
-        const t = p.life / p.maxLife;
-        const fadeAlpha = t < 0.2 ? t / 0.2 : t > 0.8 ? (1 - t) / 0.2 : 1;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(45,${p.green},79,${p.alpha * fadeAlpha * 0.6})`;
-        ctx.fill();
-        if (p.life >= p.maxLife) particles[i] = createParticle();
-      });
-      animationId = requestAnimationFrame(animParticles);
+    let lt=0, rafId;
+    function loop() {
+      lt+=.012;
+      lx.clearRect(0,0,lc.width,lc.height);
+      const rcx=lc.width*.5, rcy=lc.height*.5;
+      for(let r=80;r<Math.max(lc.width,lc.height);r+=90){ const a=Math.max(0,.06-r/6000); if(a<=0)break; lx.beginPath(); lx.arc(rcx,rcy,r,0,Math.PI*2); lx.strokeStyle=`rgba(100,135,85,${a})`; lx.lineWidth=.5; lx.stroke(); }
+      lineCfgs.forEach(cfg=>{ const pts=[]; for(let xi=0;xi<=lc.width+40;xi+=8){ const y=lc.height*cfg.yBase+Math.sin(xi*cfg.freq+lt*cfg.speed+cfg.phase)*cfg.amp+Math.sin(xi*cfg.freq*2.3+lt*cfg.speed*.7)*cfg.amp*.35; pts.push([xi,y]); } lx.beginPath(); lx.moveTo(pts[0][0],pts[0][1]); for(let i=1;i<pts.length-1;i++){ const mx=(pts[i][0]+pts[i+1][0])/2,my=(pts[i][1]+pts[i+1][1])/2; lx.quadraticCurveTo(pts[i][0],pts[i][1],mx,my); } lx.strokeStyle=`rgba(${cfg.color},${cfg.alpha})`; lx.lineWidth=1; lx.stroke(); });
+      fx.clearRect(0,0,fc.width,fc.height);
+      leaves.forEach(l=>{ l.t+=.008; l.x+=l.vx+Math.sin(l.t*.7)*.15; l.y+=l.vy+Math.cos(l.t*.5)*.12; l.angle+=l.angleSpeed+Math.sin(l.t)*.001; if(l.x<-60)l.x=fc.width+40; if(l.x>fc.width+60)l.x=-40; if(l.y<-60)l.y=fc.height+40; if(l.y>fc.height+60)l.y=-40; drawLeaf(fx,l.x,l.y,l.size,l.angle,l.opacity,l.variant); });
+      rafId=requestAnimationFrame(loop);
     }
-    animParticles();
+    rafId=requestAnimationFrame(loop);
+    return () => { cancelAnimationFrame(rafId); window.removeEventListener('resize',resize); };
+  }, [isOpen]);
 
+  // ── Cursor glow ──
+  useEffect(() => {
+    if (!isOpen) return;
+    let cx2=innerWidth/2, cy2=innerHeight/2, mx=cx2, my=cy2, rafId;
+    function onMove(e) { mx=e.clientX; my=e.clientY; }
+    window.addEventListener('mousemove', onMove);
+    function loop() { cx2+=(mx-cx2)*.07; cy2+=(my-cy2)*.07; if(cursorGlowRef.current){ cursorGlowRef.current.style.left=cx2+'px'; cursorGlowRef.current.style.top=cy2+'px'; } rafId=requestAnimationFrame(loop); }
+    rafId=requestAnimationFrame(loop);
+    return () => { cancelAnimationFrame(rafId); window.removeEventListener('mousemove',onMove); };
+  }, [isOpen]);
+
+  // ── Card parallax ──
+  useEffect(() => {
+    if (!isOpen) return;
+    let tx = 0, ty = 0, cx2 = 0, cy2 = 0, rafId;
+    function onMove(e) {
+      tx = (e.clientX / innerWidth  - 0.5) * 8;
+      ty = (e.clientY / innerHeight - 0.5) * 6;
+    }
+    window.addEventListener('mousemove', onMove);
+    function loop() {
+      cx2 += (tx - cx2) * 0.08;
+      cy2 += (ty - cy2) * 0.08;
+      if (faceCardRef.current) {
+        faceCardRef.current.style.transform = `translate(${cx2.toFixed(2)}px,${cy2.toFixed(2)}px)`;
+      }
+      rafId = requestAnimationFrame(loop);
+    }
+    rafId = requestAnimationFrame(loop);
     return () => {
-      window.removeEventListener('resize', resize);
-      cancelAnimationFrame(animationId);
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('mousemove', onMove);
+      if (faceCardRef.current) faceCardRef.current.style.transform = '';
     };
   }, [isOpen]);
 
@@ -257,7 +360,6 @@ export default function FaceAuthModal({ isOpen, onClose }) {
       setRegFrame({ detected: false, centered: false });
     }
   }, []);
-
   const startFaceLogin = async () => {
     if (loginState !== 'idle') return;
     if (!modelsReady) {
@@ -291,7 +393,6 @@ export default function FaceAuthModal({ isOpen, onClose }) {
         onNotCentered: speakFaceNotCentered,
       });
 
-      // NO detenemos el overlay aquí - debe seguir mostrando la malla
       setLoginState('processing');
       setLoginProgress(72);
 
@@ -314,7 +415,6 @@ export default function FaceAuthModal({ isOpen, onClose }) {
       showFaceAlert('success', `Bienvenido, ${nombre}`, `Identidad verificada correctamente.`);
       speakLoginSuccess(nombre);
 
-      // Detenemos el overlay DESPUÉS de completar todo el proceso
       if (overlay) {
         overlay.stop();
         loginOverlayRef.current = null;
@@ -323,7 +423,6 @@ export default function FaceAuthModal({ isOpen, onClose }) {
 
       setTimeout(() => finishAuth(data), 2400);
     } catch (err) {
-      // Asegurarse de detener el overlay en caso de error
       if (overlay) {
         overlay.stop();
         loginOverlayRef.current = null;
@@ -351,15 +450,12 @@ export default function FaceAuthModal({ isOpen, onClose }) {
       if (/centre su rostro/i.test(err?.message ?? '')) {
         speakFaceNotCentered();
         setLoginState('idle');
-        // No mostrar toast, solo la voz
         return;
       }
 
-      // Otros errores
       speakLoginError();
       setLoginState('idle');
       
-      // Mostrar toast solo si hay un error real
       if (err?.message && !err?.message.includes('cancelado')) {
         showToast(err.message, false);
       }
@@ -401,7 +497,6 @@ export default function FaceAuthModal({ isOpen, onClose }) {
         onNotCentered: speakFaceNotCentered,
       });
 
-      // NO detenemos el overlay aquí - debe seguir mostrando la malla durante la captura
       setRegState('capturing');
       speakRegisterProcessing();
 
@@ -412,7 +507,6 @@ export default function FaceAuthModal({ isOpen, onClose }) {
         throw new Error('No se pudo capturar el embedding facial. Por favor intente de nuevo.');
       }
 
-      // Detenemos el overlay DESPUÉS de capturar el embedding
       if (overlay) {
         overlay.stop();
         regOverlayRef.current = null;
@@ -440,7 +534,6 @@ export default function FaceAuthModal({ isOpen, onClose }) {
       }, 4000);
     } catch (err) {
       console.error('Error en registro facial:', err);
-      // Asegurarse de detener el overlay en caso de error
       if (overlay) {
         overlay.stop();
         regOverlayRef.current = null;
@@ -448,7 +541,6 @@ export default function FaceAuthModal({ isOpen, onClose }) {
       stopStream('register');
       setRegState('idle');
       
-      // Verificar si el rostro ya está registrado
       if (isUserAlreadyRegisteredError(err)) {
         setRegState('already-exists');
         showFaceAlert(
@@ -464,20 +556,17 @@ export default function FaceAuthModal({ isOpen, onClose }) {
         return;
       }
       
-      // Error de rostro no centrado
       if (/centre su rostro/i.test(err?.message ?? '')) {
         speakFaceNotCentered();
         showToast('Por favor centre su rostro dentro del marco', false);
         return;
       }
       
-      // Error de detección de rostro
       if (/no se detectó|no se pudo capturar/i.test(err?.message ?? '')) {
         showToast(err.message, false);
         return;
       }
       
-      // Mostrar toast solo si hay un error real (no cuando se cancela)
       if (err?.message && !err?.message.includes('cancelado')) {
         showToast(err.message, false);
       }
@@ -499,7 +588,6 @@ export default function FaceAuthModal({ isOpen, onClose }) {
   };
 
   if (!isOpen) return null;
-
   const getLoginStatusText = () => {
     if (!modelsReady) return 'Inicializando IA…';
     if (loginState === 'idle') return 'Cámara lista';
@@ -532,7 +620,6 @@ export default function FaceAuthModal({ isOpen, onClose }) {
     return 'Listo para capturar…';
   };
 
-  // Determinar el estado del borde del círculo
   const getLoginCircleState = () => {
     if (loginState === 'success') return 'success';
     if (loginState === 'not-found') return 'error';
@@ -557,18 +644,24 @@ export default function FaceAuthModal({ isOpen, onClose }) {
 
   return (
     <div className="face-auth-overlay">
-      <canvas ref={canvasRef} className="particle-canvas" />
-      <div className="face-blob face-blob-1" />
-      <div className="face-blob face-blob-2" />
-      <div className="face-blob face-blob-3" />
+      {/* Background layers */}
+      <canvas ref={webglCanvasRef}  className="face-bg-layer face-bg-webgl" />
+      <canvas ref={dotsCanvasRef}   className="face-bg-layer face-bg-dots" />
+      <canvas ref={linesCanvasRef}  className="face-bg-layer face-bg-lines" />
+      <canvas ref={leavesCanvasRef} className="face-bg-layer face-bg-leaves" />
+
+      {/* CSS blobs */}
+      <div className="face-eco-blob" style={{width:'700px',height:'600px',top:'-18%',left:'-12%',background:'radial-gradient(ellipse,rgba(180,210,170,0.28) 0%,transparent 65%)',filter:'blur(60px)'}}></div>
+      <div className="face-eco-blob" style={{width:'550px',height:'650px',top:'25%',right:'-15%',background:'radial-gradient(ellipse,rgba(160,195,150,0.22) 0%,transparent 65%)',filter:'blur(70px)'}}></div>
+      <div className="face-eco-blob" style={{width:'600px',height:'450px',bottom:'-20%',left:'25%',background:'radial-gradient(ellipse,rgba(200,220,190,0.2) 0%,transparent 65%)',filter:'blur(55px)'}}></div>
+      <div className="face-eco-blob" style={{width:'300px',height:'300px',top:'10%',left:'38%',background:'radial-gradient(ellipse,rgba(220,235,210,0.18) 0%,transparent 70%)',filter:'blur(40px)'}}></div>
+
+      {/* Cursor glow */}
+      <div ref={cursorGlowRef} className="face-cursor-glow"></div>
 
       <div className="face-stage">
-        <div className="face-card">
-          <button type="button" onClick={onClose} className="face-close-btn">
-            <span className="material-symbols-outlined">close</span>
-          </button>
+        <div className="face-card" ref={faceCardRef}>
 
-          {/* Logo */}
           <div className="face-logo">
             <div className="face-logo-mark">
               <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -590,10 +683,9 @@ export default function FaceAuthModal({ isOpen, onClose }) {
             onClose={() => setFaceAlert((a) => ({ ...a, show: false }))}
           />
 
-          {/* Panels container */}
           <div className="face-panels">
             {/* LOGIN PANEL */}
-            <div className={`face-panel ${currentPanel === 'login' ? 'active' : 'hidden-left'}`} id="login-panel">
+            <div className={`face-panel ${currentPanel === 'login' ? 'active' : 'hidden-left'}`}>
               <div className="face-steps">
                 <div className={`face-step-dot ${currentPanel === 'login' ? 'active' : ''}`} />
                 <div className={`face-step-dot ${currentPanel === 'register' ? 'active' : ''}`} />
@@ -609,7 +701,6 @@ export default function FaceAuthModal({ isOpen, onClose }) {
                 </div>
               </div>
 
-              {/* Camera */}
               <div className={`face-camera-wrapper face-camera-wrapper--${getLoginCircleState()} ${loginState === 'scanning' || loginState === 'processing' ? 'scanning' : ''}`}>
                 <div className="face-camera-circle">
                   <video
@@ -630,10 +721,8 @@ export default function FaceAuthModal({ isOpen, onClose }) {
                     </svg>
                   </div>
 
-                  {/* Scan line inside */}
                   <div className="face-scan-line" />
 
-                  {/* Face mapping points */}
                   <div className="face-scan-face-points">
                     <div className="face-point" style={{ top: '32%', left: '36%' }} />
                     <div className="face-point" style={{ top: '32%', left: '64%', animationDelay: '.3s' }} />
@@ -646,7 +735,6 @@ export default function FaceAuthModal({ isOpen, onClose }) {
                   </div>
                 </div>
 
-                {/* Outer ring */}
                 <div className="face-scan-overlay">
                   <div className="face-scan-ring" />
                   <div className="face-scan-dots">
@@ -656,7 +744,6 @@ export default function FaceAuthModal({ isOpen, onClose }) {
                   </div>
                 </div>
 
-                {/* Corner brackets */}
                 <div className="face-cam-corners">
                   <div className="face-cam-corner" />
                   <div className="face-cam-corner" />
@@ -667,7 +754,6 @@ export default function FaceAuthModal({ isOpen, onClose }) {
 
               <p className="face-cam-status-text">{getLoginCamText()}</p>
 
-              {/* Confidence Bar */}
               <FaceConfidenceBar
                 visible={
                   loginState === 'scanning' ||
@@ -703,7 +789,7 @@ export default function FaceAuthModal({ isOpen, onClose }) {
 
               <button
                 className="face-btn-ghost"
-                onClick={() => showToast('Acceso manual no disponible en esta demo', false)}
+                onClick={() => { onClose(); onGoToManualLogin?.(); }}
               >
                 Acceso con contraseña
               </button>
@@ -722,9 +808,8 @@ export default function FaceAuthModal({ isOpen, onClose }) {
                 Autenticación 100% local · Sin datos en la nube
               </div>
             </div>
-
             {/* REGISTER PANEL */}
-            <div className={`face-panel ${currentPanel === 'register' ? 'active' : 'hidden-right'}`} id="register-panel">
+            <div className={`face-panel ${currentPanel === 'register' ? 'active' : 'hidden-right'}`}>
               <div className="face-steps">
                 <div className={`face-step-dot ${currentPanel === 'login' ? 'active' : ''}`} />
                 <div className={`face-step-dot ${currentPanel === 'register' ? 'active' : ''}`} />
@@ -755,7 +840,6 @@ export default function FaceAuthModal({ isOpen, onClose }) {
                 </div>
               </div>
 
-              {/* Camera - MISMO TAMAÑO QUE LOGIN */}
               <div className={`face-camera-wrapper face-camera-wrapper--${getRegCircleState()} ${regState === 'scanning' ? 'scanning' : ''}`}>
                 <div className="face-camera-circle">
                   <video
@@ -813,16 +897,29 @@ export default function FaceAuthModal({ isOpen, onClose }) {
               <button
                 className="face-btn-primary"
                 onClick={startFaceRegister}
-                disabled={regState === 'scanning' || regState === 'capturing' || regState === 'success' || regState === 'already-exists'}
+                disabled={regState !== 'idle' && regState !== 'already-exists'}
               >
-                {regState === 'idle' && 'Registrar Face ID'}
+                {regState === 'idle' && 'Registrar rostro'}
                 {regState === 'scanning' && 'Capturando…'}
-                {regState === 'capturing' && 'Procesando muestras…'}
-                {regState === 'success' && `✓ ${regName} registrado`}
-                {regState === 'already-exists' && 'Rostro ya registrado'}
+                {regState === 'capturing' && 'Procesando…'}
+                {regState === 'success' && '✓ Registro completado'}
+                {regState === 'already-exists' && 'Intentar de nuevo'}
               </button>
 
-              <div className="face-switch-row" style={{ marginTop: '20px' }}>
+              <div className="face-divider">
+                <div className="face-divider-line" />
+                <span className="face-divider-text">o también</span>
+                <div className="face-divider-line" />
+              </div>
+
+              <button
+                className="face-btn-ghost"
+                onClick={() => { onClose(); onGoToManualRegister?.(); }}
+              >
+                Registro con email
+              </button>
+
+              <div className="face-switch-row">
                 <span>¿Ya tienes cuenta?</span>
                 <button className="face-switch-link" onClick={goToLogin}>
                   ← Iniciar sesión
@@ -833,7 +930,7 @@ export default function FaceAuthModal({ isOpen, onClose }) {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M12 22C6.5 17 2 13 2 8a5 5 0 0 1 10 0 5 5 0 0 1 10 0c0 5-4.5 9-10 14z" />
                 </svg>
-                Tu biometría se procesa solo en tu dispositivo
+                Biometría 100% local · Sin datos en la nube
               </div>
             </div>
           </div>
