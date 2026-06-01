@@ -9,10 +9,12 @@ import Footer from './components/layout/Footer';
 import PollenCanvas from './components/layout/PollenCanvas';
 import MobileMenu from './components/layout/MobileMenu';
 import AuthModal from './components/auth/AuthModal';
-import { AuthProvider } from './context/AuthContext.jsx';
+import Dashboard from './pages/Dashboard';
+import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import './styles/global.css';
 
 function AppContent() {
+  const { user, loading } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
@@ -84,6 +86,33 @@ function AppContent() {
     };
   }, []);
 
+  // Si está cargando, mostrar un loader
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        background: '#fcf9f8'
+      }}>
+        <div style={{
+          fontSize: '24px',
+          fontWeight: '600',
+          color: '#006c49'
+        }}>
+          Cargando...
+        </div>
+      </div>
+    );
+  }
+
+  // Si el usuario está autenticado, mostrar el dashboard
+  if (user) {
+    return <Dashboard />;
+  }
+
+  // Si no está autenticado, mostrar la landing page
   return (
     <div className="bg-background text-on-background font-body-md overflow-x-hidden selection:bg-primary-fixed selection:text-on-primary-fixed">
       <PollenCanvas />
