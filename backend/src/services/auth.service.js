@@ -71,10 +71,9 @@ export const authService = {
     const embedding = parseEmbedding(facialEmbedding);
     const usersWithFace = await userRepository.findAllWithFacialEmbeddings();
 
-    // Para registro: usar threshold más bajo para evitar que la misma persona se registre dos veces
-    // pero no tan bajo que rechace personas diferentes
-    // 0.85 = si la similitud es >= 85%, consideramos que es la misma persona (duplicado)
-    const DUPLICATE_THRESHOLD = 0.85;
+    // Para registro: usar threshold alto para evitar que la misma persona se registre dos veces
+    // 0.92 = si la similitud es >= 92%, consideramos que es la misma persona (duplicado)
+    const DUPLICATE_THRESHOLD = 0.92;
     
     const duplicate = findDuplicateUser(
       embedding,
