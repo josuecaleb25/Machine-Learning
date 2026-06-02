@@ -1,323 +1,436 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './Analytics.css';
 
-const MODEL_METRICS = [
-  { label: 'Accuracy', value: '94.2%', change: '+2.3%', trend: 'up', icon: 'psychology' },
-  { label: 'Precisión', value: '92.8%', change: '+1.8%', trend: 'up', icon: 'target' },
-  { label: 'Recall', value: '91.5%', change: '+0.9%', trend: 'up', icon: 'sync' },
-  { label: 'F1-Score', value: '93.1%', change: '+1.5%', trend: 'up', icon: 'bar_chart' },
+// Datos para el gráfico de tendencia
+const TREND_DATA = [
+  { year: 2021, plastico: 235, carton: 553, vidrio: 122, organico: 575 },
+  { year: 2022, plastico: 251, carton: 588, vidrio: 125, organico: 595 },
+  { year: 2023, plastico: 271, carton: 589, vidrio: 131, organico: 630 },
+  { year: 2024, plastico: 297, carton: 616, vidrio: 142, organico: 658 },
+  { year: 2025, plastico: 319, carton: 649, vidrio: 148, organico: 685 },
 ];
 
-const PREDICTION_HISTORY = [
-  {
-    id: 1,
-    timestamp: '2024-06-02 14:32:18',
-    category: 'Plástico PET',
-    confidence: 98.5,
-    image: 'bottle_001.jpg',
-    status: 'Reciclable',
-    color: '#10b981',
-  },
-  {
-    id: 2,
-    timestamp: '2024-06-02 14:28:45',
-    category: 'Vidrio',
-    confidence: 96.2,
-    image: 'glass_jar_012.jpg',
-    status: 'Reciclable',
-    color: '#4edea3',
-  },
-  {
-    id: 3,
-    timestamp: '2024-06-02 14:25:11',
-    category: 'Papel/Cartón',
-    confidence: 94.8,
-    image: 'cardboard_box_003.jpg',
-    status: 'Reciclable',
-    color: '#68fcbf',
-  },
-  {
-    id: 4,
-    timestamp: '2024-06-02 14:21:33',
-    category: 'Metal/Aluminio',
-    confidence: 91.3,
-    image: 'can_aluminum_008.jpg',
-    status: 'Reciclable',
-    color: '#95d3ba',
-  },
-  {
-    id: 5,
-    timestamp: '2024-06-02 14:18:56',
-    category: 'Orgánico',
-    confidence: 89.7,
-    image: 'apple_core_021.jpg',
-    status: 'Compostable',
-    color: '#306d58',
-  },
-  {
-    id: 6,
-    timestamp: '2024-06-02 14:15:22',
-    category: 'Plástico PET',
-    confidence: 97.1,
-    image: 'bottle_002.jpg',
-    status: 'Reciclable',
-    color: '#10b981',
-  },
-  {
-    id: 7,
-    timestamp: '2024-06-02 14:12:08',
-    category: 'Vidrio',
-    confidence: 95.4,
-    image: 'glass_bottle_015.jpg',
-    status: 'Reciclable',
-    color: '#4edea3',
-  },
-  {
-    id: 8,
-    timestamp: '2024-06-02 14:08:41',
-    category: 'Papel/Cartón',
-    confidence: 93.2,
-    image: 'paper_sheet_007.jpg',
-    status: 'Reciclable',
-    color: '#68fcbf',
-  },
-  {
-    id: 9,
-    timestamp: '2024-06-02 14:05:19',
-    category: 'Metal/Aluminio',
-    confidence: 90.8,
-    image: 'can_soda_011.jpg',
-    status: 'Reciclable',
-    color: '#95d3ba',
-  },
-  {
-    id: 10,
-    timestamp: '2024-06-02 14:01:47',
-    category: 'Orgánico',
-    confidence: 88.9,
-    image: 'banana_peel_019.jpg',
-    status: 'Compostable',
-    color: '#306d58',
-  },
-  {
-    id: 11,
-    timestamp: '2024-06-02 13:58:15',
-    category: 'Plástico PET',
-    confidence: 96.7,
-    image: 'bottle_003.jpg',
-    status: 'Reciclable',
-    color: '#10b981',
-  },
-  {
-    id: 12,
-    timestamp: '2024-06-02 13:54:32',
-    category: 'Vidrio',
-    confidence: 94.1,
-    image: 'glass_container_009.jpg',
-    status: 'Reciclable',
-    color: '#4edea3',
-  },
+// Datos para el gráfico de barras (total acumulado)
+const TOTAL_DATA = {
+  plastico: 1373,
+  carton: 2995,
+  vidrio: 668,
+  organico: 3143,
+};
+
+// Datos para el gráfico circular (porcentajes)
+const PIE_DATA = [
+  { categoria: 'Plástico', porcentaje: 16.8, color: 'rgba(0, 108, 73, 0.8)' },
+  { categoria: 'Cartón', porcentaje: 36.6, color: 'rgba(16, 185, 129, 0.8)' },
+  { categoria: 'Vidrio', porcentaje: 8.1, color: 'rgba(43, 105, 84, 0.8)' },
+  { categoria: 'Orgánico', porcentaje: 38.5, color: 'rgba(0, 108, 75, 0.8)' },
 ];
 
 export default function Analytics() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterCategory, setFilterCategory] = useState('all');
+  const [animateCharts, setAnimateCharts] = useState(false);
 
-  const filteredHistory = PREDICTION_HISTORY.filter((item) => {
-    const matchesSearch = item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.image.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterCategory === 'all' || item.category === filterCategory;
-    return matchesSearch && matchesFilter;
-  });
+  useEffect(() => {
+    setTimeout(() => setAnimateCharts(true), 100);
+  }, []);
 
   return (
-    <div className="an-page content-container">
-      {/* Header */}
-      <header className="an-header">
-        <div>
-          <h2 className="an-title">Historial de Predicciones</h2>
-          <p className="an-subtitle">
-            Registro completo de clasificaciones realizadas por el modelo CNN
+    <div className="analytics-page content-container">
+      {/* Header mejorado */}
+      <header className="analytics-header">
+        <div className="header-content">
+          <div className="header-badge">
+            <span className="material-symbols-outlined">insights</span>
+            <span>Análisis de Datos ML</span>
+          </div>
+          <h1 className="analytics-title">Analíticas del Modelo</h1>
+          <p className="analytics-subtitle">
+            Visualización de patrones históricos del sistema de clasificación 
+            automática de residuos mediante Machine Learning
           </p>
-        </div>
-        <div className="an-status-badge">
-          <span className="an-pulse-dot" />
-          <span>MODELO ACTIVO · V2.4</span>
         </div>
       </header>
 
-      {/* Métricas principales */}
-      <div className="an-metrics-grid">
-        {MODEL_METRICS.map((metric, idx) => (
-          <div key={idx} className="an-glass-card an-metric-card">
-            <div className="an-metric-icon-wrap">
-              <span className="material-symbols-outlined">{metric.icon}</span>
+      {/* Métricas destacadas */}
+      <section className="key-metrics">
+        <div className="metric-card-compact glass-card">
+          <div className="metric-icon-wrapper">
+            <span className="material-symbols-outlined">dataset</span>
+          </div>
+          <div className="metric-info">
+            <p className="metric-label">Total Muestras</p>
+            <h3 className="metric-value">8,179</h3>
+            <p className="metric-sublabel">toneladas</p>
+          </div>
+        </div>
+
+        <div className="metric-card-compact glass-card">
+          <div className="metric-icon-wrapper">
+            <span className="material-symbols-outlined">speed</span>
+          </div>
+          <div className="metric-info">
+            <p className="metric-label">Precisión</p>
+            <h3 className="metric-value">98.4%</h3>
+            <p className="metric-sublabel">validación</p>
+          </div>
+        </div>
+
+        <div className="metric-card-compact glass-card">
+          <div className="metric-icon-wrapper">
+            <span className="material-symbols-outlined">timeline</span>
+          </div>
+          <div className="metric-info">
+            <p className="metric-label">Período</p>
+            <h3 className="metric-value">5 años</h3>
+            <p className="metric-sublabel">2021-2025</p>
+          </div>
+        </div>
+
+        <div className="metric-card-compact glass-card">
+          <div className="metric-icon-wrapper">
+            <span className="material-symbols-outlined">category</span>
+          </div>
+          <div className="metric-info">
+            <p className="metric-label">Categorías</p>
+            <h3 className="metric-value">4</h3>
+            <p className="metric-sublabel">tipos</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Contexto */}
+      <section className="context-section glass-card">
+        <div className="context-icon">
+          <span className="material-symbols-outlined">lightbulb</span>
+        </div>
+        <div className="context-content">
+          <h3>Contexto del Problema</h3>
+          <p>
+            El modelo de Deep Learning clasifica residuos urbanos en cuatro categorías: 
+            <strong> Plástico</strong>, <strong>Cartón</strong>, <strong>Vidrio</strong> y 
+            <strong> Orgánico</strong>. Los gráficos ilustran el análisis exploratorio realizado 
+            durante la Fase 1 en Google Colab.
+          </p>
+        </div>
+      </section>
+
+      {/* Gráfico de líneas */}
+      <section className="chart-section glass-card chart-full">
+        <div className="chart-header-enhanced">
+          <div className="chart-title-group">
+            <h3>Tendencia de Residuos por Año</h3>
+            <p className="chart-desc">Evolución del volumen por categoría (2021-2025)</p>
+          </div>
+          <div className="chart-legend-h">
+            <div className="legend-item">
+              <span className="legend-dot" style={{ background: 'rgba(0, 108, 73, 0.9)' }}></span>
+              <span>Plástico</span>
             </div>
-            <div className="an-metric-content">
-              <p className="an-metric-label">{metric.label}</p>
-              <p className="an-metric-value">{metric.value}</p>
-              <div className="an-metric-change-row">
-                <span className={`an-metric-change ${metric.trend}`}>
-                  <span className="material-symbols-outlined">
-                    {metric.trend === 'up' ? 'trending_up' : 'trending_down'}
-                  </span>
-                  {metric.change}
-                </span>
-                <span className="an-metric-period">vs. época anterior</span>
-              </div>
+            <div className="legend-item">
+              <span className="legend-dot" style={{ background: 'rgba(16, 185, 129, 0.9)' }}></span>
+              <span>Cartón</span>
+            </div>
+            <div className="legend-item">
+              <span className="legend-dot" style={{ background: 'rgba(43, 105, 84, 0.9)' }}></span>
+              <span>Vidrio</span>
+            </div>
+            <div className="legend-item">
+              <span className="legend-dot" style={{ background: 'rgba(0, 108, 75, 0.9)' }}></span>
+              <span>Orgánico</span>
             </div>
           </div>
+        </div>
+        <LineChart data={TREND_DATA} animate={animateCharts} />
+      </section>
+
+      {/* Grid 2 columnas */}
+      <div className="charts-grid-two">
+        <section className="chart-section glass-card">
+          <div className="chart-header-enhanced">
+            <div className="chart-title-group">
+              <h3>Volumen Total por Categoría</h3>
+              <p className="chart-desc">Toneladas acumuladas</p>
+            </div>
+          </div>
+          <BarChart data={TOTAL_DATA} animate={animateCharts} />
+        </section>
+
+        <section className="chart-section glass-card">
+          <div className="chart-header-enhanced">
+            <div className="chart-title-group">
+              <h3>Composición Porcentual</h3>
+              <p className="chart-desc">Distribución relativa</p>
+            </div>
+          </div>
+          <PieChart data={PIE_DATA} animate={animateCharts} />
+        </section>
+      </div>
+    </div>
+  );
+}
+
+// Componente de gráfico de líneas
+function LineChart({ data, animate }) {
+  const maxValue = 700;
+  const minValue = 100;
+  const chartHeight = 300;
+  const chartWidth = 100;
+  const padding = { top: 20, right: 20, bottom: 40, left: 60 };
+
+  const getY = (value) => {
+    const range = maxValue - minValue;
+    const percentage = ((value - minValue) / range);
+    return chartHeight - padding.bottom - (percentage * (chartHeight - padding.top - padding.bottom));
+  };
+
+  const getX = (index) => {
+    const availableWidth = chartWidth - ((padding.left + padding.right) / 10);
+    return (padding.left / 10) + (index / (data.length - 1)) * availableWidth;
+  };
+
+  const createPath = (key, color) => {
+    let path = '';
+    data.forEach((point, index) => {
+      const x = getX(index);
+      const y = getY(point[key]);
+      if (index === 0) {
+        path += `M ${x} ${y}`;
+      } else {
+        path += ` L ${x} ${y}`;
+      }
+    });
+    return { path, color };
+  };
+
+  const lines = [
+    createPath('plastico', 'rgba(0, 108, 73, 0.9)'),
+    createPath('carton', 'rgba(16, 185, 129, 0.9)'),
+    createPath('vidrio', 'rgba(43, 105, 84, 0.9)'),
+    createPath('organico', 'rgba(0, 108, 75, 0.9)'),
+  ];
+
+  return (
+    <div className="line-chart">
+      <svg viewBox={`0 0 100 ${chartHeight}`} preserveAspectRatio="none">
+        {[100, 200, 300, 400, 500, 600, 700].map((value) => (
+          <line
+            key={value}
+            x1={padding.left / 10}
+            y1={getY(value)}
+            x2={chartWidth - (padding.right / 10)}
+            y2={getY(value)}
+            stroke="rgba(0, 108, 73, 0.1)"
+            strokeWidth="0.2"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+
+        {lines.map((line, index) => (
+          <path
+            key={index}
+            d={line.path}
+            fill="none"
+            stroke={line.color}
+            strokeWidth="0.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+            style={{
+              strokeDasharray: animate ? 'none' : '200',
+              strokeDashoffset: animate ? '0' : '200',
+              transition: 'stroke-dashoffset 2s ease-out',
+            }}
+          />
+        ))}
+
+        {lines.map((line, lineIndex) => (
+          data.map((point, pointIndex) => {
+            const key = ['plastico', 'carton', 'vidrio', 'organico'][lineIndex];
+            return (
+              <circle
+                key={`${lineIndex}-${pointIndex}`}
+                cx={getX(pointIndex)}
+                cy={getY(point[key])}
+                r="1"
+                fill={line.color}
+                vectorEffect="non-scaling-stroke"
+                style={{
+                  opacity: animate ? 1 : 0,
+                  transition: `opacity 0.5s ease-out ${pointIndex * 0.1}s`,
+                }}
+              />
+            );
+          })
+        ))}
+      </svg>
+
+      <div className="chart-y-labels">
+        {[700, 600, 500, 400, 300, 200, 100].map((value) => (
+          <span key={value}>{value}</span>
         ))}
       </div>
 
-      {/* Filtros y búsqueda */}
-      <div className="an-glass-card an-filters-card">
-        <div className="an-filters-row">
-          <div className="an-search-box">
-            <span className="material-symbols-outlined">search</span>
-            <input
-              type="text"
-              placeholder="Buscar por categoría o archivo..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="an-search-input"
-            />
-          </div>
-          <div className="an-filter-buttons">
-            <button
-              type="button"
-              className={`an-filter-btn ${filterCategory === 'all' ? 'active' : ''}`}
-              onClick={() => setFilterCategory('all')}
-            >
-              Todas
-            </button>
-            <button
-              type="button"
-              className={`an-filter-btn ${filterCategory === 'Plástico PET' ? 'active' : ''}`}
-              onClick={() => setFilterCategory('Plástico PET')}
-            >
-              Plástico
-            </button>
-            <button
-              type="button"
-              className={`an-filter-btn ${filterCategory === 'Vidrio' ? 'active' : ''}`}
-              onClick={() => setFilterCategory('Vidrio')}
-            >
-              Vidrio
-            </button>
-            <button
-              type="button"
-              className={`an-filter-btn ${filterCategory === 'Papel/Cartón' ? 'active' : ''}`}
-              onClick={() => setFilterCategory('Papel/Cartón')}
-            >
-              Papel
-            </button>
-            <button
-              type="button"
-              className={`an-filter-btn ${filterCategory === 'Metal/Aluminio' ? 'active' : ''}`}
-              onClick={() => setFilterCategory('Metal/Aluminio')}
-            >
-              Metal
-            </button>
-            <button
-              type="button"
-              className={`an-filter-btn ${filterCategory === 'Orgánico' ? 'active' : ''}`}
-              onClick={() => setFilterCategory('Orgánico')}
-            >
-              Orgánico
-            </button>
-          </div>
-        </div>
+      <div className="chart-x-labels">
+        {data.map((point) => (
+          <span key={point.year}>{point.year}</span>
+        ))}
       </div>
+    </div>
+  );
+}
 
-      {/* Historial de predicciones */}
-      <div className="an-glass-card an-history-card">
-        <div className="an-history-header">
-          <div>
-            <h3 className="an-chart-title">Registros de Clasificación</h3>
-            <p className="an-history-count">{filteredHistory.length} predicciones encontradas</p>
+// Componente de gráfico de barras
+function BarChart({ data, animate }) {
+  const maxValue = Math.max(...Object.values(data));
+  const categories = [
+    { key: 'plastico', label: 'Plástico', color: 'rgba(0, 108, 73, 0.7)' },
+    { key: 'carton', label: 'Cartón', color: 'rgba(16, 185, 129, 0.7)' },
+    { key: 'vidrio', label: 'Vidrio', color: 'rgba(43, 105, 84, 0.7)' },
+    { key: 'organico', label: 'Orgánico', color: 'rgba(0, 108, 75, 0.7)' },
+  ];
+
+  return (
+    <div className="bar-chart">
+      <div className="bar-chart-grid">
+        {[0, 1000, 2000, 3000].map((value) => (
+          <div key={value} className="grid-line">
+            <span className="grid-label">{value}</span>
           </div>
-          <button type="button" className="an-export-btn">
-            <span className="material-symbols-outlined">download</span>
-            Exportar CSV
-          </button>
-        </div>
-
-        <div className="an-history-table">
-          <div className="an-table-header">
-            <div className="an-th an-th-id">ID</div>
-            <div className="an-th an-th-timestamp">Fecha y Hora</div>
-            <div className="an-th an-th-category">Categoría</div>
-            <div className="an-th an-th-confidence">Confianza</div>
-            <div className="an-th an-th-image">Archivo</div>
-            <div className="an-th an-th-status">Estado</div>
-          </div>
-
-          <div className="an-table-body">
-            {filteredHistory.map((item) => (
-              <div key={item.id} className="an-table-row">
-                <div className="an-td an-td-id">#{item.id.toString().padStart(4, '0')}</div>
-                <div className="an-td an-td-timestamp">
-                  <span className="material-symbols-outlined">schedule</span>
-                  {item.timestamp}
-                </div>
-                <div className="an-td an-td-category">
-                  <span
-                    className="an-category-badge"
-                    style={{
-                      background: `${item.color}20`,
-                      color: item.color,
-                      borderColor: `${item.color}40`,
-                    }}
-                  >
-                    {item.category}
-                  </span>
-                </div>
-                <div className="an-td an-td-confidence">
-                  <div className="an-confidence-bar-container">
-                    <div
-                      className="an-confidence-bar"
-                      style={{
-                        width: `${item.confidence}%`,
-                        background: item.color,
-                      }}
-                    />
-                  </div>
-                  <span className="an-confidence-text">{item.confidence}%</span>
-                </div>
-                <div className="an-td an-td-image">
-                  <span className="material-symbols-outlined">image</span>
-                  {item.image}
-                </div>
-                <div className="an-td an-td-status">
-                  <span className="an-status-badge-small success">
-                    <span className="material-symbols-outlined">check_circle</span>
-                    {item.status}
-                  </span>
-                </div>
+        ))}
+      </div>
+      <div className="bar-chart-bars">
+        {categories.map((cat, index) => {
+          const value = data[cat.key];
+          const heightPercent = (value / maxValue) * 100;
+          return (
+            <div key={cat.key} className="bar-wrapper">
+              <div
+                className="bar"
+                style={{
+                  height: animate ? `${heightPercent}%` : '0%',
+                  background: cat.color,
+                  transitionDelay: `${index * 0.1}s`,
+                }}
+              >
+                <span className="bar-value">{value.toLocaleString()}</span>
               </div>
-            ))}
-          </div>
-        </div>
+              <span className="bar-label">{cat.label}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Componente de gráfico circular
+function PieChart({ data, animate }) {
+  let currentAngle = -90;
+  const radius = 40;
+  const centerX = 50;
+  const centerY = 50;
+
+  const segments = data.map((item) => {
+    const startAngle = currentAngle;
+    const sweepAngle = (item.porcentaje / 100) * 360;
+    currentAngle += sweepAngle;
+
+    const startRad = (startAngle * Math.PI) / 180;
+    const endRad = (currentAngle * Math.PI) / 180;
+
+    const x1 = centerX + radius * Math.cos(startRad);
+    const y1 = centerY + radius * Math.sin(startRad);
+    const x2 = centerX + radius * Math.cos(endRad);
+    const y2 = centerY + radius * Math.sin(endRad);
+
+    const largeArc = sweepAngle > 180 ? 1 : 0;
+
+    const pathData = [
+      `M ${centerX} ${centerY}`,
+      `L ${x1} ${y1}`,
+      `A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`,
+      'Z',
+    ].join(' ');
+
+    const labelAngle = startAngle + sweepAngle / 2;
+    const labelRad = (labelAngle * Math.PI) / 180;
+    const labelDistance = radius * 0.65;
+    const labelX = centerX + labelDistance * Math.cos(labelRad);
+    const labelY = centerY + labelDistance * Math.sin(labelRad);
+
+    return {
+      ...item,
+      pathData,
+      labelX,
+      labelY,
+    };
+  });
+
+  return (
+    <div className="pie-chart">
+      <div className="pie-container">
+        <svg viewBox="0 0 100 100">
+          <circle
+            cx={centerX}
+            cy={centerY}
+            r={radius + 1.5}
+            fill="none"
+            stroke="rgba(0, 0, 0, 0.08)"
+            strokeWidth="2"
+          />
+
+          {segments.map((segment, index) => (
+            <g key={segment.categoria}>
+              <path
+                d={segment.pathData}
+                fill={segment.color}
+                stroke="white"
+                strokeWidth="0.8"
+                style={{
+                  opacity: animate ? 0.95 : 0,
+                  transition: `opacity 0.6s ease-out ${index * 0.15}s`,
+                }}
+              />
+              <text
+                x={segment.labelX}
+                y={segment.labelY}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fill="white"
+                fontSize="6"
+                fontWeight="700"
+                style={{
+                  opacity: animate ? 1 : 0,
+                  transition: `opacity 0.6s ease-out ${0.5 + index * 0.15}s`,
+                }}
+              >
+                {segment.porcentaje}%
+              </text>
+            </g>
+          ))}
+        </svg>
       </div>
 
-      {/* Footer con info del problema */}
-      <div className="an-glass-card an-problem-card">
-        <div className="an-problem-icon-wrap">
-          <span className="material-symbols-outlined">history</span>
-        </div>
-        <h4 className="an-problem-title">Sistema de Registro Inteligente</h4>
-        <p className="an-problem-text">
-          Cada predicción realizada por el modelo CNN es registrada automáticamente con timestamp, 
-          categoría clasificada, nivel de confianza y estado del residuo. Este historial permite 
-          analizar patrones de uso, mejorar el modelo y generar reportes de impacto ambiental.
-        </p>
-        <div className="an-problem-tech-stack">
-          <span className="an-tech-badge">CNN Classification</span>
-          <span className="an-tech-badge">Real-time Logging</span>
-          <span className="an-tech-badge">Data Analytics</span>
-          <span className="an-tech-badge">Export Reports</span>
-        </div>
+      <div className="pie-legend">
+        {segments.map((segment, index) => (
+          <div
+            key={segment.categoria}
+            className="pie-legend-item"
+            style={{
+              opacity: animate ? 1 : 0,
+              transform: animate ? 'translateY(0)' : 'translateY(10px)',
+              transition: `all 0.5s ease-out ${0.8 + index * 0.1}s`,
+            }}
+          >
+            <span
+              className="pie-legend-color"
+              style={{ background: segment.color }}
+            ></span>
+            <div className="pie-legend-text">
+              <span className="pie-legend-label">{segment.categoria}</span>
+              <span className="pie-legend-percent">{segment.porcentaje}%</span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
