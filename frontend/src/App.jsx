@@ -11,6 +11,7 @@ import MobileMenu from './components/layout/MobileMenu';
 import AuthModal from './components/auth/AuthModal';
 import Dashboard from './pages/Dashboard';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
+import { ThemeProvider } from './context/ThemeContext.jsx';
 import './styles/global.css';
 
 function AppContent() {
@@ -141,8 +142,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

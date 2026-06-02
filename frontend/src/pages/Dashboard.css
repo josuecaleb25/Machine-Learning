@@ -312,6 +312,84 @@
   overflow-y: auto;
 }
 
+/* Analíticas: sin barra en la ventana ni en el panel */
+html.dashboard-analytics-scroll-lock,
+html.dashboard-analytics-scroll-lock body {
+  overflow: hidden !important;
+  height: 100%;
+}
+
+html.dashboard-analytics-scroll-lock #root {
+  overflow: hidden;
+  height: 100%;
+  max-height: 100vh;
+}
+
+.dashboard-wrapper--analytics {
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+.dashboard-wrapper--analytics .dashboard-shell {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.dashboard-wrapper--analytics .main-content {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.dashboard-wrapper--analytics .main-content::-webkit-scrollbar,
+.dashboard-wrapper--analytics .main-content::-webkit-scrollbar-thumb,
+.dashboard-wrapper--analytics .main-content::-webkit-scrollbar-track,
+.dashboard-wrapper--analytics .main-content::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+.dashboard-wrapper--analytics .main-content * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.dashboard-wrapper--analytics .main-content *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Mapa de reciclaje — pantalla completa bajo topbar */
+.dashboard-wrapper--recycling-map {
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+.dashboard-wrapper--recycling-map .dashboard-shell {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.dashboard-wrapper--recycling-map .main-content {
+  padding: 0;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+}
+
+.dashboard-wrapper--recycling-map .content-container {
+  max-width: none;
+  padding: 0;
+  margin: 0;
+  height: 100%;
+}
+
 .content-container {
   padding: 40px 64px;
   max-width: 1440px;
@@ -802,36 +880,174 @@
   opacity: 0.9;
 }
 
-/* FAB */
+/* FAB — un solo círculo; colores según tema global */
 .fab {
   position: fixed;
   bottom: 32px;
   right: 32px;
   width: 64px;
   height: 64px;
-  background: #006c49;
-  color: white;
+  background: var(--fab-bg, #006c49);
+  color: var(--fab-fg, #ffffff);
   border-radius: 50%;
-  border: none;
-  box-shadow: 0 8px 32px rgba(0, 108, 73, 0.3);
+  border: 1px solid var(--fab-border, transparent);
+  box-shadow: var(--fab-shadow, 0 8px 32px rgba(0, 108, 73, 0.3));
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: transform 0.2s, background 0.25s, box-shadow 0.25s;
   z-index: 40;
 }
 
+[data-theme="light"] .fab {
+  --fab-bg: #006c49;
+  --fab-fg: #ffffff;
+  --fab-border: transparent;
+  --fab-shadow: 0 8px 28px rgba(0, 108, 73, 0.28);
+}
+
+[data-theme="dark"] .fab {
+  --fab-bg: #10b981;
+  --fab-fg: #ffffff;
+  --fab-border: rgba(255, 255, 255, 0.12);
+  --fab-shadow: 0 8px 28px rgba(16, 185, 129, 0.35);
+}
+
+.dashboard-wrapper--recycling-map .fab {
+  display: none;
+}
+
 .fab:hover {
-  transform: scale(1.1);
+  transform: scale(1.06);
+  filter: brightness(1.06);
 }
 
 .fab:active {
-  transform: scale(0.95);
+  transform: scale(0.96);
 }
 
 .fab .material-symbols-outlined {
   font-size: 32px;
+}
+
+/* ── Modo oscuro: sidebar (Mission Control) + fondo mapa ── */
+[data-theme="dark"] .dashboard-wrapper {
+  background: #1c1b1b;
+  background-image: none;
+  color: #e5e2e1;
+}
+
+[data-theme="dark"] .sidebar {
+  background: #0d0e0d;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-right: 1px solid rgba(68, 71, 70, 0.1);
+  box-shadow: none;
+}
+
+[data-theme="dark"] .sidebar-title {
+  color: #10b981;
+}
+
+[data-theme="dark"] .sidebar-subtitle {
+  color: #c4c7c5;
+}
+
+[data-theme="dark"] .nav-item {
+  color: #c4c7c5;
+}
+
+[data-theme="dark"] .nav-item:hover {
+  color: #e5e2e1;
+  background: #191c1b;
+}
+
+[data-theme="dark"] .nav-item.active {
+  position: relative;
+  background: rgba(0, 108, 73, 0.1);
+  background-image: linear-gradient(90deg, rgba(16, 185, 129, 0.15) 0%, transparent 100%);
+  color: #10b981;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  background: #006c49;
+  border-radius: 0 4px 4px 0;
+}
+
+[data-theme="dark"] .nav-item.active .material-symbols-outlined {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  color: #10b981;
+}
+
+[data-theme="dark"] .sidebar-footer {
+  border-top-color: rgba(68, 71, 70, 0.1);
+}
+
+[data-theme="dark"] .footer-item {
+  color: #c4c7c5;
+}
+
+[data-theme="dark"] .footer-item:hover {
+  color: #e5e2e1;
+}
+
+[data-theme="dark"] .logout-btn:hover {
+  color: #ff8a80;
+}
+
+/* Negro mission-control (#0b0c0c) en vista mapa */
+[data-theme="dark"] .dashboard-wrapper--recycling-map {
+  background-color: #0b0c0c;
+  background-image: radial-gradient(circle at 2px 2px, rgba(16, 185, 129, 0.03) 1px, transparent 0);
+  background-size: 60px 60px;
+}
+
+[data-theme="dark"] .dashboard-wrapper--recycling-map .dashboard-shell,
+[data-theme="dark"] .dashboard-wrapper--recycling-map .main-content {
+  background: transparent;
+}
+
+[data-theme="dark"] .dashboard-wrapper--recycling-map .topbar {
+  background: rgba(13, 14, 13, 0.8);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom-color: rgba(68, 71, 70, 0.1);
+}
+
+[data-theme="dark"] .dashboard-wrapper--recycling-map .topbar-date,
+[data-theme="dark"] .dashboard-wrapper--recycling-map .search-icon,
+[data-theme="dark"] .dashboard-wrapper--recycling-map .icon-btn {
+  color: #c4c7c5;
+}
+
+[data-theme="dark"] .dashboard-wrapper--recycling-map .topbar-date .material-symbols-outlined,
+[data-theme="dark"] .dashboard-wrapper--recycling-map .icon-btn:hover {
+  color: #10b981;
+}
+
+[data-theme="dark"] .dashboard-wrapper--recycling-map .search-box input {
+  color: #e5e2e1;
+  border-bottom-color: rgba(68, 71, 70, 0.35);
+}
+
+[data-theme="dark"] .dashboard-wrapper--recycling-map .search-box input::placeholder {
+  color: rgba(142, 145, 143, 0.6);
+}
+
+[data-theme="dark"] .dashboard-wrapper--recycling-map .search-box input:focus {
+  border-bottom-color: #10b981;
+}
+
+[data-theme="dark"] .dashboard-wrapper--recycling-map .user-avatar {
+  border-color: rgba(68, 71, 70, 0.35);
 }
 
 /* Responsive */

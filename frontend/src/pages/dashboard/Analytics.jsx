@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
+import RecyclingMapModule from '../../components/recycling-map/RecyclingMapModule';
 import './Analytics.css';
 
 const MONTHS = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL'];
@@ -39,27 +40,14 @@ const PARTNER_LOGOS = [
   'https://lh3.googleusercontent.com/aida-public/AB6AXuCAGNFa_QfvioTODZKwHxbAGMvspOQcJST1OZQyv-LMld8YS5JCC9hDVnjecpZL76s0LmZB6h_53FsHs9cU9p7nTZPntZ77mC9__9q_thm1DMCIMUaAOKkOJeg7_6XNRBVYMJ6AF-qf9u1wdAYhjTHQ-g6OcIxkYNZTfXT_ddDEybLya3bYISiNxE1oRM10zHcuOI815VHejf7yoNTGyKAYlQ3fxa5OH-loV-f_Vp_dBe4pVYp64rmkqIcTmgL36-IBifbDGK9BJWU',
 ];
 
-const HEATMAP_INITIAL = [0.2, 0.6, 0.1, 0.9, 0.4];
-const OPACITY_LEVELS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.7, 0.9];
-
-function buildHeatmapCells() {
-  const cells = [...HEATMAP_INITIAL];
-  for (let i = 0; i < 115; i++) {
-    cells.push(OPACITY_LEVELS[Math.floor(Math.random() * OPACITY_LEVELS.length)]);
-  }
-  return cells;
-}
-
 export default function Analytics() {
   const pageRef = useRef(null);
-  const [heatmapCells] = useState(() => buildHeatmapCells());
 
   useEffect(() => {
     const root = pageRef.current;
     if (!root) return undefined;
 
     const cards = root.querySelectorAll('.an-glass-card');
-    const cells = root.querySelectorAll('.an-heatmap-cell');
 
     const cardHandlers = Array.from(cards).map((card) => {
       const onEnter = () => {
@@ -74,29 +62,13 @@ export default function Analytics() {
       return { card, onEnter, onLeave };
     });
 
-    const cellHandlers = Array.from(cells).map((cell) => {
-      const onEnter = () => {
-        cell.style.filter = 'brightness(1.5)';
-      };
-      const onLeave = () => {
-        cell.style.filter = 'none';
-      };
-      cell.addEventListener('mouseenter', onEnter);
-      cell.addEventListener('mouseleave', onLeave);
-      return { cell, onEnter, onLeave };
-    });
-
     return () => {
       cardHandlers.forEach(({ card, onEnter, onLeave }) => {
         card.removeEventListener('mouseenter', onEnter);
         card.removeEventListener('mouseleave', onLeave);
       });
-      cellHandlers.forEach(({ cell, onEnter, onLeave }) => {
-        cell.removeEventListener('mouseenter', onEnter);
-        cell.removeEventListener('mouseleave', onLeave);
-      });
     };
-  }, [heatmapCells]);
+  }, []);
 
   return (
     <div ref={pageRef} className="an-page content-container">
@@ -225,48 +197,16 @@ export default function Analytics() {
           </div>
         </section>
 
-        {/* Heatmap — col-span-12 */}
-        <section className="an-glass-card an-heatmap-card col-12">
-          <div className="an-heatmap-head">
+        {/* Mapa — col-span-12 */}
+        <section className="an-glass-card an-map-card col-12">
+          <div className="an-map-head">
             <div>
               <span className="an-kicker an-tracking-widest">Geolocalización</span>
               <h3 className="an-card-title">Puntos de Recolección Activos</h3>
-            </div>
-            <div className="an-heatmap-legend">
-              <span>Baja Actividad</span>
-              <div className="an-legend-scale">
-                <div className="an-scale-10" />
-                <div className="an-scale-30" />
-                <div className="an-scale-60" />
-                <div className="an-scale-100" />
-              </div>
-              <span>Alta Demanda</span>
+              <p className="an-map-subtitle">Lima · Supabase + mapa interactivo</p>
             </div>
           </div>
-          <div className="an-heatmap-grid">
-            {heatmapCells.map((opacity, i) => (
-              <div
-                key={i}
-                className="an-heatmap-cell heatmap-cell"
-                style={{ opacity }}
-              />
-            ))}
-          </div>
-          <div className="an-heatmap-footer">
-            <div className="an-heatmap-stats">
-              <div>
-                <p className="an-metric-label">Total Puntos</p>
-                <p className="an-stat-lg">1,402</p>
-              </div>
-              <div>
-                <p className="an-metric-label">Zonas Críticas</p>
-                <p className="an-stat-lg an-text-error">12</p>
-              </div>
-            </div>
-            <button type="button" className="an-outline-btn">
-              Descargar Mapa Detallado
-            </button>
-          </div>
+          <RecyclingMapModule embedded />
         </section>
 
         {/* Flujo de Residuos — col-span-7 */}

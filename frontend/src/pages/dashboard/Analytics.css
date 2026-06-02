@@ -1,10 +1,9 @@
-/* EcoTech OS — Analíticas (fiel al mockup HTML) */
+/* EcoTech OS — Analíticas */
 
 .an-page {
   position: relative;
   overflow-x: hidden;
   padding-bottom: 48px;
-  max-width: 1440px;
   width: 100%;
 }
 
@@ -351,75 +350,50 @@
 .an-radar-stat-primary strong { color: #006c49; }
 .an-radar-stat-tertiary strong { color: #006c4b; }
 
-/* Heatmap */
-.an-heatmap-card {
+/* Mapa de recolección */
+.an-map-card {
   overflow: hidden;
 }
 
-.an-heatmap-head {
+.an-map-head {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
+  align-items: flex-start;
+  margin-bottom: 24px;
   gap: 16px;
   flex-wrap: wrap;
 }
 
-.an-heatmap-legend {
+.an-map-subtitle {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #6c7a71;
+}
+
+.an-map-legend {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
+  font-size: 11px;
   color: #3c4a42;
 }
 
-.an-legend-scale {
-  display: flex;
-  gap: 4px;
+.an-map-legend-gradient {
+  width: 120px;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 108, 73, 0.15) 0%,
+    rgba(16, 185, 129, 0.5) 45%,
+    rgba(0, 76, 51, 0.95) 100%
+  );
 }
 
-.an-legend-scale div {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  background: #006c49;
-}
-
-.an-scale-10 { opacity: 0.1; }
-.an-scale-30 { opacity: 0.3; }
-.an-scale-60 { opacity: 0.6; }
-.an-scale-100 { opacity: 1; }
-
-.an-heatmap-grid {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 8px;
-}
-
-@media (min-width: 768px) {
-  .an-heatmap-grid {
-    grid-template-columns: repeat(24, 1fr);
-  }
-}
-
-.an-heatmap-cell,
-.heatmap-cell {
-  aspect-ratio: 1;
-  background: #006c49;
-  border-radius: 2px;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.heatmap-cell:hover {
-  transform: scale(1.1);
-  z-index: 10;
-  position: relative;
-}
-
-.an-heatmap-footer {
-  margin-top: 32px;
-  padding-top: 32px;
+.an-map-footer {
+  margin-top: 24px;
+  padding-top: 24px;
   border-top: 1px solid rgba(187, 202, 191, 0.25);
   display: flex;
   justify-content: space-between;
@@ -428,7 +402,7 @@
   flex-wrap: wrap;
 }
 
-.an-heatmap-stats {
+.an-map-stats {
   display: flex;
   gap: 48px;
 }
@@ -706,7 +680,7 @@
   letter-spacing: -0.02em;
   line-height: 1.2;
   color: #1c1b1b;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .an-commitment-text {
@@ -741,13 +715,13 @@
 
 /* Flow chart needs left margin for y-axis */
 .an-flow-chart {
-  padding-left: 56px;
+  padding-left: 48px;
 }
 
 @media (max-width: 768px) {
   .an-title,
   .an-commitment-title {
-    font-size: 32px;
+    font-size: 26px;
   }
 
   .an-radar-wrap {

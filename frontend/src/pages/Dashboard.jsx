@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import DashboardHome from './dashboard/DashboardHome';
 import WastePrediction from './dashboard/WastePrediction';
 import Analytics from './dashboard/Analytics';
+import RecyclingMapPage from './dashboard/RecyclingMapPage';
 import './Dashboard.css';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Panel Principal', icon: 'grid' },
   { id: 'prediction', label: 'Predicción de Residuos', icon: 'query_stats' },
   { id: 'analytics', label: 'Analíticas', icon: 'analytics' },
+  { id: 'recycling-map', label: 'Mapa de Reciclaje', icon: 'map' },
   { id: 'biometrics', label: 'Biometría', icon: 'fingerprint' },
   { id: 'ecosystem', label: 'Ecosistema', icon: 'eco' },
   { id: 'security', label: 'Seguridad', icon: 'verified_user' },
@@ -30,6 +33,7 @@ function NavIcon({ type }) {
 
 export default function Dashboard() {
   const { logout } = useAuth();
+  const { dark, toggle: toggleTheme } = useTheme();
   const [currentDate, setCurrentDate] = useState('');
   const [activeView, setActiveView] = useState('dashboard');
 
@@ -38,12 +42,27 @@ export default function Dashboard() {
     setCurrentDate(new Date().toLocaleDateString('es-ES', options));
   }, []);
 
+  useEffect(() => {
+    if (activeView !== 'analytics' && activeView !== 'recycling-map') return undefined;
+
+    const lockClass = 'dashboard-analytics-scroll-lock';
+    document.documentElement.classList.add(lockClass);
+    document.body.classList.add(lockClass);
+
+    return () => {
+      document.documentElement.classList.remove(lockClass);
+      document.body.classList.remove(lockClass);
+    };
+  }, [activeView]);
+
   const renderContent = () => {
     switch (activeView) {
       case 'prediction':
         return <WastePrediction />;
       case 'analytics':
         return <Analytics />;
+      case 'recycling-map':
+        return <RecyclingMapPage />;
       case 'dashboard':
         return <DashboardHome />;
       default:
@@ -61,7 +80,9 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="dashboard-wrapper">
+    <div
+      className={`dashboard-wrapper${activeView === 'analytics' ? ' dashboard-wrapper--analytics' : ''}${activeView === 'recycling-map' ? ' dashboard-wrapper--recycling-map' : ''}`}
+    >
       <aside className="sidebar">
         <div className="sidebar-header">
           <h1 className="sidebar-title">EcoTech OS</h1>
@@ -113,6 +134,17 @@ export default function Dashboard() {
             </div>
 
             <div className="topbar-actions">
+              <button
+                type="button"
+                className="icon-btn theme-toggle-btn"
+                onClick={toggleTheme}
+                aria-label={dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+                title={dark ? 'Modo claro' : 'Modo oscuro'}
+              >
+                <span className="material-symbols-outlined">
+                  {dark ? 'light_mode' : 'dark_mode'}
+                </span>
+              </button>
               <button type="button" className="icon-btn">
                 <span className="material-symbols-outlined">notifications</span>
               </button>
@@ -132,9 +164,11 @@ export default function Dashboard() {
         <main className="main-content">{renderContent()}</main>
       </div>
 
-      <button type="button" className="fab">
-        <span className="material-symbols-outlined">bolt</span>
-      </button>
+      {activeView !== 'recycling-map' && (
+        <button type="button" className="fab" aria-label="Acción rápida">
+          <span className="material-symbols-outlined">bolt</span>
+        </button>
+      )}
     </div>
   );
 }
