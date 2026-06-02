@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import '@tensorflow/tfjs-backend-webgl';
+import '@tensorflow/tfjs-backend-cpu';
 import * as tmImage from '@teachablemachine/image';
 import { usePredictions } from '../../hooks/usePredictions';
 import { useNotificationContext } from '../../context/NotificationContext';
