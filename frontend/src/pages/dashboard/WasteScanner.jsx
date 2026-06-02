@@ -5,52 +5,25 @@ import { useNotificationContext } from '../../context/NotificationContext';
 const MODEL_URL = '/models/model.json';
 const METADATA_URL = '/models/metadata.json';
 
-// Carga el modelo de Teachable Machine usando window.tf del CDN
+// Usa window.tmImage cargado desde el CDN en index.html
 let _tmModel = null;
-let _tmLabels = [];
 let _tmLoadPromise = null;
 
 async function loadTMModel() {
-  if (_tmModel) return;
+  if (_tmModel) return _tmModel;
   if (_tmLoadPromise) return _tmLoadPromise;
   _tmLoadPromise = (async () => {
-    // Esperar a que window.tf esté disponible (CDN puede tardar)
+    // Esperar a que window.tmImage esté disponible
     let attempts = 0;
-    while (!window.tf && attempts < 20) {
+    while (!window.tmImage && attempts < 30) {
       await new Promise(r => setTimeout(r, 200));
       attempts++;
     }
-    const tf = window.tf;
-    if (!tf) throw new Error('TF.js no cargó desde CDN');
-    const [modelJson, metaJson] = await Promise.all([
-      fetch(MODEL_URL).then(r => r.json()),
-      fetch(METADATA_URL).then(r => r.json()),
-    ]);
-    _tmLabels = metaJson.labels ?? [];
-    _tmModel = await tf.loadLayersModel(tf.io.fromMemory(modelJson));
+    if (!window.tmImage) throw new Error('Teachable Machine no disponible');
+    _tmModel = await window.tmImage.load(MODEL_URL, METADATA_URL);
+    return _tmModel;
   })();
   return _tmLoadPromise;
-}
-
-async function predictFrame(canvas) {
-  await loadTMModel();
-  const tf = window.tf;
-  const fromPixels = tf.browser?.fromPixels ?? tf.fromPixels;
-  if (!fromPixels) throw new Error('tf.fromPixels no disponible');
-
-  // fromPixels fuera del tidy para evitar problemas de scope
-  const pixels = fromPixels(canvas);
-  const imgTensor = tf.tidy(() =>
-    pixels.resizeBilinear([224, 224]).toFloat().div(tf.scalar(127.5)).sub(tf.scalar(1)).expandDims(0)
-  );
-  pixels.dispose();
-
-  const output = _tmModel.predict(imgTensor);
-  const result = await output.data();
-  imgTensor.dispose();
-  output.dispose();
-
-  return _tmLabels.map((className, i) => ({ className, probability: result[i] }));
 }
 
 const DEMO_IMAGE = '/screen.png';
@@ -115,22 +88,20 @@ export default function WasteScanner({ onNewPrediction }) {
 
   // Cargar el modelo de Teachable Machine
   useEffect(() => {
-    const loadModel = async () => {
+    const load = async () => {
       try {
         setIsModelLoading(true);
-        await loadTMModel();
-        setModel(true); // solo señal de que está listo
+        const m = await loadTMModel();
+        setModel(m);
         setIsModelLoading(false);
         success('Modelo de IA cargado correctamente', { title: 'Sistema listo' });
       } catch (error) {
         console.error('Error loading model:', error);
         setIsModelLoading(false);
-        showError('Error al cargar el modelo de IA. Verifica que los archivos estén disponibles.', {
-          title: 'Error del sistema'
-        });
+        showError('Error al cargar el modelo de IA.', { title: 'Error del sistema' });
       }
     };
-    loadModel();
+    load();
   }, [success, showError]);
 
   // Función para realizar predicciones
@@ -149,7 +120,7 @@ export default function WasteScanner({ onNewPrediction }) {
     ctx.drawImage(video, 0, 0);
     
     try {
-      const predictions = await predictFrame(canvas);
+      const predictions = await model.predict(canvas);
       const topPrediction = predictions.reduce((max, pred) =>
         pred.probability > max.probability ? pred : max
       );
