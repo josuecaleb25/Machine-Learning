@@ -1,13 +1,79 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import * as tmImage from '@teachablemachine/image';
 import { usePredictions } from '../../hooks/usePredictions';
 import { useNotificationContext } from '../../context/NotificationContext';
 
-const DEMO_IMAGE = '/screen.png';
-
-// URLs del modelo de Teachable Machine
 const MODEL_URL = '/models/model.json';
 const METADATA_URL = '/models/metadata.json';
+
+// Carga TF.js 1.3.1 y el modelo de Teachable Machine sin contaminar window.tf
+let _model = null;
+let _labels = [];
+let _modelLoadPromise = null;
+
+async function loadTMModel() {
+  if (_model) return { model: _model, labels: _labels };
+  if (_modelLoadPromise) return _modelLoadPromise;
+
+  _modelLoadPromise = (async () => {
+    // Cargar tfjs desde CDN como script clásico solo si no existe aún
+    if (!window.__tm_tf_ready__) {
+      await new Promise((resolve, reject) => {
+        // Guardar window.tf actual (de face-api) para restaurarlo
+        const prevTf = window.tf;
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js';
+        s.onload = () => {
+          window.__tm_tf_ready__ = true;
+          window.__tm_tf__ = window.tf;   // guardar la instancia 1.3.1
+          window.tf = prevTf;             // restaurar la de face-api
+          resolve();
+        };
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
+    // Usar la instancia 1.3.1 guardada para cargar el modelo manualmente
+    const tf = window.__tm_tf__;
+    const [modelJson, metaJson] = await Promise.all([
+      fetch(MODEL_URL).then(r => r.json()),
+      fetch(METADATA_URL).then(r => r.json()),
+    ]);
+
+    _labels = metaJson.labels ?? [];
+    _model = await tf.loadLayersModel(tf.io.fromMemory(modelJson));
+    return { model: _model, labels: _labels };
+  })();
+
+  return _modelLoadPromise;
+}
+
+async function predictFrame(canvas) {
+  const { model, labels } = await loadTMModel();
+  const tf = window.__tm_tf__;
+
+  const tensor = tf.tidy(() => {
+    const img = tf.browser
+      ? tf.browser.fromPixels(canvas)
+      : tf.fromPixels(canvas);
+    return img
+      .resizeBilinear([224, 224])
+      .toFloat()
+      .div(127.5)
+      .sub(1)
+      .expandDims(0);
+  });
+
+  const predictions = await model.predict(tensor).data();
+  tensor.dispose();
+
+  return labels.map((className, i) => ({
+    className,
+    probability: predictions[i],
+  }));
+}
+
+const DEMO_IMAGE = '/screen.png';
 
 // Mapa de etiquetas del modelo → categoría del backend (enum CATEGORIA_RESIDUO)
 const LABEL_TO_CATEGORIA = {
@@ -72,12 +138,10 @@ export default function WasteScanner({ onNewPrediction }) {
     const loadModel = async () => {
       try {
         setIsModelLoading(true);
-        const loadedModel = await tmImage.load(MODEL_URL, METADATA_URL);
-        setModel(loadedModel);
+        await loadTMModel();
+        setModel(true); // solo señal de que está listo
         setIsModelLoading(false);
-        success('Modelo de IA cargado correctamente', {
-          title: 'Sistema listo'
-        });
+        success('Modelo de IA cargado correctamente', { title: 'Sistema listo' });
       } catch (error) {
         console.error('Error loading model:', error);
         setIsModelLoading(false);
@@ -96,19 +160,17 @@ export default function WasteScanner({ onNewPrediction }) {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     
-    if (video.readyState !== 4) return; // Video no está listo
+    if (video.readyState !== 4) return;
     
-    // Configurar canvas con las dimensiones del video
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     
-    // Dibujar el frame actual del video en el canvas
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0);
     
     try {
-      const predictions = await model.predict(canvas);
-      const topPrediction = predictions.reduce((max, pred) => 
+      const predictions = await predictFrame(canvas);
+      const topPrediction = predictions.reduce((max, pred) =>
         pred.probability > max.probability ? pred : max
       );
       
