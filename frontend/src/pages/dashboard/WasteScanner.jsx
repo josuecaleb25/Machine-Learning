@@ -14,8 +14,14 @@ async function loadTMModel() {
   if (_tmModel) return;
   if (_tmLoadPromise) return _tmLoadPromise;
   _tmLoadPromise = (async () => {
+    // Esperar a que window.tf esté disponible (CDN puede tardar)
+    let attempts = 0;
+    while (!window.tf && attempts < 20) {
+      await new Promise(r => setTimeout(r, 200));
+      attempts++;
+    }
     const tf = window.tf;
-    if (!tf) throw new Error('TF.js no está disponible');
+    if (!tf) throw new Error('TF.js no cargó desde CDN');
     const [modelJson, metaJson] = await Promise.all([
       fetch(MODEL_URL).then(r => r.json()),
       fetch(METADATA_URL).then(r => r.json()),
@@ -29,12 +35,21 @@ async function loadTMModel() {
 async function predictFrame(canvas) {
   await loadTMModel();
   const tf = window.tf;
-  const imgTensor = tf.tidy(() => {
-    const pixels = tf.fromPixels(canvas);
-    return pixels.resizeBilinear([224, 224]).toFloat().div(127.5).sub(1).expandDims(0);
-  });
-  const result = await _tmModel.predict(imgTensor).data();
+  const fromPixels = tf.browser?.fromPixels ?? tf.fromPixels;
+  if (!fromPixels) throw new Error('tf.fromPixels no disponible');
+
+  // fromPixels fuera del tidy para evitar problemas de scope
+  const pixels = fromPixels(canvas);
+  const imgTensor = tf.tidy(() =>
+    pixels.resizeBilinear([224, 224]).toFloat().div(tf.scalar(127.5)).sub(tf.scalar(1)).expandDims(0)
+  );
+  pixels.dispose();
+
+  const output = _tmModel.predict(imgTensor);
+  const result = await output.data();
   imgTensor.dispose();
+  output.dispose();
+
   return _tmLabels.map((className, i) => ({ className, probability: result[i] }));
 }
 
