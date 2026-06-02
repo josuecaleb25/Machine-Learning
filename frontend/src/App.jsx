@@ -5,7 +5,6 @@ import Metodologia from './components/sections/Metodologia';
 import Impacto from './components/sections/Impacto';
 import Vision from './components/sections/Vision';
 import Metas from './components/sections/Metas';
-import Footer from './components/layout/Footer';
 import PollenCanvas from './components/layout/PollenCanvas';
 import MobileMenu from './components/layout/MobileMenu';
 import AuthModal from './components/auth/AuthModal';
@@ -135,7 +134,6 @@ function AppContent() {
       <Impacto />
       <Vision />
       <Metas />
-      <Footer />
     </div>
   );
 }

@@ -68,44 +68,6 @@ export default function Metas() {
           ))}
         </div>
 
-        {/* CTA Premium */}
-        <div className="reveal">
-          <div className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-white/60 to-secondary/10 backdrop-blur-2xl rounded-3xl p-12 md:p-16 border border-white/60 shadow-2xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent"></div>
-            <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-[100px]"></div>
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary/10 rounded-full blur-[100px]"></div>
-            
-            <div className="relative z-10 max-w-3xl mx-auto text-center">
-              <h3 className="text-3xl md:text-4xl font-bold text-on-surface mb-4 tracking-tight">
-                ¿Listo para cultivar el cambio?
-              </h3>
-              <p className="text-on-surface-variant/80 text-lg mb-10 max-w-xl mx-auto leading-relaxed">
-                Únete a la red descentralizada de gestión de residuos más avanzada de Iberoamérica
-              </p>
-              <form className="flex flex-col sm:flex-row gap-4 max-w-2xl mx-auto">
-                <input 
-                  className="flex-1 bg-white/60 backdrop-blur-sm border border-white/80 rounded-2xl px-7 py-4 text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:bg-white/80 transition-all shadow-sm" 
-                  placeholder="Tu correo electrónico" 
-                  type="email" 
-                />
-                <button className="bg-primary text-on-primary font-semibold px-10 py-4 rounded-2xl hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2 whitespace-nowrap">
-                  <span>Solicitar Demo</span>
-                  <span className="material-symbols-outlined text-xl">arrow_forward</span>
-                </button>
-              </form>
-              <div className="mt-8 flex items-center justify-center gap-6 text-sm text-on-surface-variant/60">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-base">check_circle</span>
-                  <span>Sin compromiso</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-base">check_circle</span>
-                  <span>Respuesta en 24h</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Transición elegante hacia la siguiente sección */}
