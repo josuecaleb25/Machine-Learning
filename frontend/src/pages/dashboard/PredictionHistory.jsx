@@ -1,12 +1,5 @@
 import { useState } from 'react';
-import './Analytics.css';
-
-const MODEL_METRICS = [
-  { label: 'Accuracy', value: '94.2%', change: '+2.3%', trend: 'up', icon: 'psychology' },
-  { label: 'Precisión', value: '92.8%', change: '+1.8%', trend: 'up', icon: 'target' },
-  { label: 'Recall', value: '91.5%', change: '+0.9%', trend: 'up', icon: 'sync' },
-  { label: 'F1-Score', value: '93.1%', change: '+1.5%', trend: 'up', icon: 'bar_chart' },
-];
+import './PredictionHistory.css';
 
 const PREDICTION_HISTORY = [
   {
@@ -119,7 +112,7 @@ const PREDICTION_HISTORY = [
   },
 ];
 
-export default function Analytics() {
+export default function PredictionHistory() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
 
@@ -131,97 +124,73 @@ export default function Analytics() {
   });
 
   return (
-    <div className="an-page content-container">
+    <div className="ph-page content-container">
       {/* Header */}
-      <header className="an-header">
+      <header className="ph-header">
         <div>
-          <h2 className="an-title">Historial de Predicciones</h2>
-          <p className="an-subtitle">
+          <h2 className="ph-title">Historial de Predicciones</h2>
+          <p className="ph-subtitle">
             Registro completo de clasificaciones realizadas por el modelo CNN
           </p>
         </div>
-        <div className="an-status-badge">
-          <span className="an-pulse-dot" />
-          <span>MODELO ACTIVO · V2.4</span>
+        <div className="ph-status-badge">
+          <span className="ph-pulse-dot" />
+          <span>{filteredHistory.length} REGISTROS</span>
         </div>
       </header>
 
-      {/* Métricas principales */}
-      <div className="an-metrics-grid">
-        {MODEL_METRICS.map((metric, idx) => (
-          <div key={idx} className="an-glass-card an-metric-card">
-            <div className="an-metric-icon-wrap">
-              <span className="material-symbols-outlined">{metric.icon}</span>
-            </div>
-            <div className="an-metric-content">
-              <p className="an-metric-label">{metric.label}</p>
-              <p className="an-metric-value">{metric.value}</p>
-              <div className="an-metric-change-row">
-                <span className={`an-metric-change ${metric.trend}`}>
-                  <span className="material-symbols-outlined">
-                    {metric.trend === 'up' ? 'trending_up' : 'trending_down'}
-                  </span>
-                  {metric.change}
-                </span>
-                <span className="an-metric-period">vs. época anterior</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
       {/* Filtros y búsqueda */}
-      <div className="an-glass-card an-filters-card">
-        <div className="an-filters-row">
-          <div className="an-search-box">
+      <div className="ph-glass-card ph-filters-card">
+        <div className="ph-filters-row">
+          <div className="ph-search-box">
             <span className="material-symbols-outlined">search</span>
             <input
               type="text"
               placeholder="Buscar por categoría o archivo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="an-search-input"
+              className="ph-search-input"
             />
           </div>
-          <div className="an-filter-buttons">
+          <div className="ph-filter-buttons">
             <button
               type="button"
-              className={`an-filter-btn ${filterCategory === 'all' ? 'active' : ''}`}
+              className={`ph-filter-btn ${filterCategory === 'all' ? 'active' : ''}`}
               onClick={() => setFilterCategory('all')}
             >
               Todas
             </button>
             <button
               type="button"
-              className={`an-filter-btn ${filterCategory === 'Plástico PET' ? 'active' : ''}`}
+              className={`ph-filter-btn ${filterCategory === 'Plástico PET' ? 'active' : ''}`}
               onClick={() => setFilterCategory('Plástico PET')}
             >
               Plástico
             </button>
             <button
               type="button"
-              className={`an-filter-btn ${filterCategory === 'Vidrio' ? 'active' : ''}`}
+              className={`ph-filter-btn ${filterCategory === 'Vidrio' ? 'active' : ''}`}
               onClick={() => setFilterCategory('Vidrio')}
             >
               Vidrio
             </button>
             <button
               type="button"
-              className={`an-filter-btn ${filterCategory === 'Papel/Cartón' ? 'active' : ''}`}
+              className={`ph-filter-btn ${filterCategory === 'Papel/Cartón' ? 'active' : ''}`}
               onClick={() => setFilterCategory('Papel/Cartón')}
             >
               Papel
             </button>
             <button
               type="button"
-              className={`an-filter-btn ${filterCategory === 'Metal/Aluminio' ? 'active' : ''}`}
+              className={`ph-filter-btn ${filterCategory === 'Metal/Aluminio' ? 'active' : ''}`}
               onClick={() => setFilterCategory('Metal/Aluminio')}
             >
               Metal
             </button>
             <button
               type="button"
-              className={`an-filter-btn ${filterCategory === 'Orgánico' ? 'active' : ''}`}
+              className={`ph-filter-btn ${filterCategory === 'Orgánico' ? 'active' : ''}`}
               onClick={() => setFilterCategory('Orgánico')}
             >
               Orgánico
@@ -231,39 +200,39 @@ export default function Analytics() {
       </div>
 
       {/* Historial de predicciones */}
-      <div className="an-glass-card an-history-card">
-        <div className="an-history-header">
+      <div className="ph-glass-card ph-history-card">
+        <div className="ph-history-header">
           <div>
-            <h3 className="an-chart-title">Registros de Clasificación</h3>
-            <p className="an-history-count">{filteredHistory.length} predicciones encontradas</p>
+            <h3 className="ph-chart-title">Registros de Clasificación</h3>
+            <p className="ph-history-count">{filteredHistory.length} predicciones encontradas</p>
           </div>
-          <button type="button" className="an-export-btn">
+          <button type="button" className="ph-export-btn">
             <span className="material-symbols-outlined">download</span>
             Exportar CSV
           </button>
         </div>
 
-        <div className="an-history-table">
-          <div className="an-table-header">
-            <div className="an-th an-th-id">ID</div>
-            <div className="an-th an-th-timestamp">Fecha y Hora</div>
-            <div className="an-th an-th-category">Categoría</div>
-            <div className="an-th an-th-confidence">Confianza</div>
-            <div className="an-th an-th-image">Archivo</div>
-            <div className="an-th an-th-status">Estado</div>
+        <div className="ph-history-table">
+          <div className="ph-table-header">
+            <div className="ph-th ph-th-id">ID</div>
+            <div className="ph-th ph-th-timestamp">Fecha y Hora</div>
+            <div className="ph-th ph-th-category">Categoría</div>
+            <div className="ph-th ph-th-confidence">Confianza</div>
+            <div className="ph-th ph-th-image">Archivo</div>
+            <div className="ph-th ph-th-status">Estado</div>
           </div>
 
-          <div className="an-table-body">
+          <div className="ph-table-body">
             {filteredHistory.map((item) => (
-              <div key={item.id} className="an-table-row">
-                <div className="an-td an-td-id">#{item.id.toString().padStart(4, '0')}</div>
-                <div className="an-td an-td-timestamp">
+              <div key={item.id} className="ph-table-row">
+                <div className="ph-td ph-td-id">#{item.id.toString().padStart(4, '0')}</div>
+                <div className="ph-td ph-td-timestamp">
                   <span className="material-symbols-outlined">schedule</span>
                   {item.timestamp}
                 </div>
-                <div className="an-td an-td-category">
+                <div className="ph-td ph-td-category">
                   <span
-                    className="an-category-badge"
+                    className="ph-category-badge"
                     style={{
                       background: `${item.color}20`,
                       color: item.color,
@@ -273,24 +242,24 @@ export default function Analytics() {
                     {item.category}
                   </span>
                 </div>
-                <div className="an-td an-td-confidence">
-                  <div className="an-confidence-bar-container">
+                <div className="ph-td ph-td-confidence">
+                  <div className="ph-confidence-bar-container">
                     <div
-                      className="an-confidence-bar"
+                      className="ph-confidence-bar"
                       style={{
                         width: `${item.confidence}%`,
                         background: item.color,
                       }}
                     />
                   </div>
-                  <span className="an-confidence-text">{item.confidence}%</span>
+                  <span className="ph-confidence-text">{item.confidence}%</span>
                 </div>
-                <div className="an-td an-td-image">
+                <div className="ph-td ph-td-image">
                   <span className="material-symbols-outlined">image</span>
                   {item.image}
                 </div>
-                <div className="an-td an-td-status">
-                  <span className="an-status-badge-small success">
+                <div className="ph-td ph-td-status">
+                  <span className="ph-status-badge-small success">
                     <span className="material-symbols-outlined">check_circle</span>
                     {item.status}
                   </span>
@@ -298,25 +267,6 @@ export default function Analytics() {
               </div>
             ))}
           </div>
-        </div>
-      </div>
-
-      {/* Footer con info del problema */}
-      <div className="an-glass-card an-problem-card">
-        <div className="an-problem-icon-wrap">
-          <span className="material-symbols-outlined">history</span>
-        </div>
-        <h4 className="an-problem-title">Sistema de Registro Inteligente</h4>
-        <p className="an-problem-text">
-          Cada predicción realizada por el modelo CNN es registrada automáticamente con timestamp, 
-          categoría clasificada, nivel de confianza y estado del residuo. Este historial permite 
-          analizar patrones de uso, mejorar el modelo y generar reportes de impacto ambiental.
-        </p>
-        <div className="an-problem-tech-stack">
-          <span className="an-tech-badge">CNN Classification</span>
-          <span className="an-tech-badge">Real-time Logging</span>
-          <span className="an-tech-badge">Data Analytics</span>
-          <span className="an-tech-badge">Export Reports</span>
         </div>
       </div>
     </div>

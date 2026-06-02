@@ -5,6 +5,7 @@ import DashboardHome from './dashboard/DashboardHome';
 import WastePrediction from './dashboard/WastePrediction';
 import Analytics from './dashboard/Analytics';
 import RecyclingMapPage from './dashboard/RecyclingMapPage';
+import PredictionHistory from './dashboard/PredictionHistory';
 import './Dashboard.css';
 
 const NAV_ITEMS = [
@@ -12,9 +13,7 @@ const NAV_ITEMS = [
   { id: 'prediction', label: 'Predicción de Residuos', icon: 'query_stats' },
   { id: 'analytics', label: 'Analíticas', icon: 'analytics' },
   { id: 'recycling-map', label: 'Mapa de Reciclaje', icon: 'map' },
-  { id: 'biometrics', label: 'Biometría', icon: 'fingerprint' },
-  { id: 'ecosystem', label: 'Ecosistema', icon: 'eco' },
-  { id: 'security', label: 'Seguridad', icon: 'verified_user' },
+  { id: 'history', label: 'Historial', icon: 'history' },
 ];
 
 function NavIcon({ type }) {
@@ -43,7 +42,7 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if (activeView !== 'analytics' && activeView !== 'recycling-map') return undefined;
+    if (activeView !== 'analytics' && activeView !== 'recycling-map' && activeView !== 'history') return undefined;
 
     const lockClass = 'dashboard-analytics-scroll-lock';
     document.documentElement.classList.add(lockClass);
@@ -63,6 +62,8 @@ export default function Dashboard() {
         return <Analytics />;
       case 'recycling-map':
         return <RecyclingMapPage />;
+      case 'history':
+        return <PredictionHistory />;
       case 'dashboard':
         return <DashboardHome />;
       default:
@@ -81,7 +82,7 @@ export default function Dashboard() {
 
   return (
     <div
-      className={`dashboard-wrapper${activeView === 'analytics' ? ' dashboard-wrapper--analytics' : ''}${activeView === 'recycling-map' ? ' dashboard-wrapper--recycling-map' : ''}${activeView === 'prediction' ? ' dashboard-wrapper--waste-prediction' : ''}`}
+      className={`dashboard-wrapper${activeView === 'analytics' ? ' dashboard-wrapper--analytics' : ''}${activeView === 'recycling-map' ? ' dashboard-wrapper--recycling-map' : ''}${activeView === 'prediction' ? ' dashboard-wrapper--waste-prediction' : ''}${activeView === 'history' ? ' dashboard-wrapper--history' : ''}`}
     >
       <aside className="sidebar">
         <div className="sidebar-header">

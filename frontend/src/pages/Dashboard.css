@@ -306,6 +306,28 @@
 .main-content {
   flex: 1;
   display: flex;
+  /* Mantener scroll pero ocultar la barra */
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.main-content::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+}
+
+/* Ocultar scrollbars visuales pero mantener funcionalidad */
+.dashboard-wrapper *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+}
+
+.dashboard-wrapper * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
   flex-direction: column;
   min-width: 0;
   min-height: 0;
@@ -933,9 +955,81 @@ html.dashboard-analytics-scroll-lock #root {
 
 /* ── Modo oscuro: sidebar (Mission Control) + fondo mapa ── */
 [data-theme="dark"] .dashboard-wrapper {
-  background: #1c1b1b;
-  background-image: none;
+  background-color: #0a0c0b;
   color: #e5e2e1;
+  position: relative;
+}
+
+[data-theme="dark"] .dashboard-wrapper::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(16, 185, 129, 0.55) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.2;
+}
+
+[data-theme="dark"] .dashboard-wrapper::after {
+  content: '';
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(to right, transparent, #10b981, transparent);
+  opacity: 0.3;
+  animation: wp-tactical-scan 4s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-theme="dark"] .dashboard-wrapper > * {
+  position: relative;
+  z-index: 1;
+}
+
+[data-theme="dark"] .dashboard-shell,
+[data-theme="dark"] .main-content {
+  background: transparent;
+}
+
+[data-theme="dark"] .topbar {
+  background: rgba(10, 12, 11, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom-color: rgba(110, 251, 190, 0.08);
+}
+
+[data-theme="dark"] .topbar-date,
+[data-theme="dark"] .search-icon,
+[data-theme="dark"] .icon-btn {
+  color: #bbcabf;
+}
+
+[data-theme="dark"] .topbar-date .material-symbols-outlined,
+[data-theme="dark"] .icon-btn:hover {
+  color: #10b981;
+}
+
+[data-theme="dark"] .search-box input {
+  color: #fcf9f8;
+  border-bottom-color: rgba(108, 122, 113, 0.35);
+}
+
+[data-theme="dark"] .search-box input::placeholder {
+  color: rgba(187, 202, 191, 0.45);
+}
+
+[data-theme="dark"] .search-box input:focus {
+  border-bottom-color: #10b981;
+}
+
+[data-theme="dark"] .user-avatar {
+  border-color: rgba(16, 185, 129, 0.35);
 }
 
 [data-theme="dark"] .sidebar {
@@ -1076,6 +1170,66 @@ html.dashboard-analytics-scroll-lock #root {
 [data-theme="dark"] .dashboard-wrapper--waste-prediction .topbar-date .material-symbols-outlined,
 [data-theme="dark"] .dashboard-wrapper--waste-prediction .icon-btn:hover {
   color: #10b981;
+}
+
+/* Historial — fondo táctico #0a0c0b */
+[data-theme="dark"] .dashboard-wrapper--history {
+  background: #0a0c0b;
+  position: relative;
+}
+
+/* Puntitos tácticos para el historial */
+[data-theme="dark"] .dashboard-wrapper--history::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: #0a0c0b;
+  background-image: radial-gradient(rgba(16, 185, 129, 0.55) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.2;
+}
+
+[data-theme="dark"] .dashboard-wrapper--history > * {
+  position: relative;
+  z-index: 1;
+}
+
+[data-theme="dark"] .dashboard-wrapper--history .dashboard-shell,
+[data-theme="dark"] .dashboard-wrapper--history .main-content {
+  background: transparent;
+}
+
+[data-theme="dark"] .dashboard-wrapper--history .topbar {
+  background: rgba(10, 12, 11, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom-color: rgba(110, 251, 190, 0.08);
+}
+
+[data-theme="dark"] .dashboard-wrapper--history .topbar-date,
+[data-theme="dark"] .dashboard-wrapper--history .search-icon,
+[data-theme="dark"] .dashboard-wrapper--history .icon-btn {
+  color: #bbcabf;
+}
+
+[data-theme="dark"] .dashboard-wrapper--history .topbar-date .material-symbols-outlined,
+[data-theme="dark"] .dashboard-wrapper--history .icon-btn:hover {
+  color: #10b981;
+}
+
+[data-theme="dark"] .dashboard-wrapper--history .search-box input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(110, 251, 190, 0.12);
+  color: #bbcabf;
+}
+
+[data-theme="dark"] .dashboard-wrapper--history .search-box input::placeholder {
+  color: rgba(187, 202, 191, 0.5);
 }
 
 [data-theme="dark"] .dashboard-wrapper--waste-prediction .search-box input {
