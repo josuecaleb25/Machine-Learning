@@ -81,7 +81,7 @@ export default function Dashboard() {
 
   return (
     <div
-      className={`dashboard-wrapper${activeView === 'analytics' ? ' dashboard-wrapper--analytics' : ''}${activeView === 'recycling-map' ? ' dashboard-wrapper--recycling-map' : ''}`}
+      className={`dashboard-wrapper${activeView === 'analytics' ? ' dashboard-wrapper--analytics' : ''}${activeView === 'recycling-map' ? ' dashboard-wrapper--recycling-map' : ''}${activeView === 'prediction' ? ' dashboard-wrapper--waste-prediction' : ''}`}
     >
       <aside className="sidebar">
         <div className="sidebar-header">
