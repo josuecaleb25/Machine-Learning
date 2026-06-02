@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import * as tf from '@tensorflow/tfjs';
 import * as tmImage from '@teachablemachine/image';
 import { usePredictions } from '../../hooks/usePredictions';
 import { useNotificationContext } from '../../context/NotificationContext';
@@ -73,8 +72,6 @@ export default function WasteScanner({ onNewPrediction }) {
     const loadModel = async () => {
       try {
         setIsModelLoading(true);
-        // Forzar inicialización del backend antes de cargar el modelo
-        await tf.ready();
         const loadedModel = await tmImage.load(MODEL_URL, METADATA_URL);
         setModel(loadedModel);
         setIsModelLoading(false);
