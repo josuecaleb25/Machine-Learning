@@ -1050,6 +1050,51 @@ html.dashboard-analytics-scroll-lock #root {
   border-color: rgba(68, 71, 70, 0.35);
 }
 
+/* Predicción de residuos — fondo táctico #0a0c0b */
+[data-theme="dark"] .dashboard-wrapper--waste-prediction {
+  background: #0a0c0b;
+}
+
+[data-theme="dark"] .dashboard-wrapper--waste-prediction .dashboard-shell,
+[data-theme="dark"] .dashboard-wrapper--waste-prediction .main-content {
+  background: #0a0c0b;
+}
+
+[data-theme="dark"] .dashboard-wrapper--waste-prediction .topbar {
+  background: rgba(10, 12, 11, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom-color: rgba(110, 251, 190, 0.08);
+}
+
+[data-theme="dark"] .dashboard-wrapper--waste-prediction .topbar-date,
+[data-theme="dark"] .dashboard-wrapper--waste-prediction .search-icon,
+[data-theme="dark"] .dashboard-wrapper--waste-prediction .icon-btn {
+  color: #bbcabf;
+}
+
+[data-theme="dark"] .dashboard-wrapper--waste-prediction .topbar-date .material-symbols-outlined,
+[data-theme="dark"] .dashboard-wrapper--waste-prediction .icon-btn:hover {
+  color: #10b981;
+}
+
+[data-theme="dark"] .dashboard-wrapper--waste-prediction .search-box input {
+  color: #fcf9f8;
+  border-bottom-color: rgba(108, 122, 113, 0.35);
+}
+
+[data-theme="dark"] .dashboard-wrapper--waste-prediction .search-box input::placeholder {
+  color: rgba(187, 202, 191, 0.45);
+}
+
+[data-theme="dark"] .dashboard-wrapper--waste-prediction .search-box input:focus {
+  border-bottom-color: #10b981;
+}
+
+[data-theme="dark"] .dashboard-wrapper--waste-prediction .user-avatar {
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .sidebar {

@@ -127,17 +127,20 @@ export default function WasteScanner() {
             )}
           </div>
 
-          <div className="wp-hud-bottom">
-            <div className="wp-target-card">
-              <p className="wp-target-label">Objeto detectado</p>
-              <p className="wp-target-value">PET Polietileno</p>
-              <p className="wp-target-confidence">Puntuación de confianza: 99.82%</p>
+          {/* HUD inferior: solo cuando NO hay cámara activa (modo demo con imagen) */}
+          {!cameraOn && (
+            <div className="wp-hud-bottom">
+              <div className="wp-target-card">
+                <p className="wp-target-label">Objeto detectado</p>
+                <p className="wp-target-value">PET Polietileno</p>
+                <p className="wp-target-confidence">Puntuación de confianza: 99.82%</p>
+              </div>
+              <div className="wp-fit-card">
+                <span className="material-symbols-outlined">recycling</span>
+                <span>Apto</span>
+              </div>
             </div>
-            <div className="wp-fit-card">
-              <span className="material-symbols-outlined">recycling</span>
-              <span>Apto</span>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 

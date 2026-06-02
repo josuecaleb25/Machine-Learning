@@ -124,14 +124,6 @@ export default function WastePrediction() {
       <div className="wp-grid-main">
         <section className="wp-scanner-section">
           <WasteScanner />
-          <div className="wp-composition-row wp-composition-standalone">
-            {COMPOSITION.map((item) => (
-              <div key={item.label} className={`wp-composition-item wp-tone-${item.tone}`}>
-                <p className="wp-composition-label">{item.label}</p>
-                <h4 className="wp-composition-value">{item.value}</h4>
-              </div>
-            ))}
-          </div>
         </section>
 
         <section className="wp-logs-section">
