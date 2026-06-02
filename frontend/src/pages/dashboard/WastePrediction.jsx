@@ -1,52 +1,47 @@
 import { useEffect, useState } from 'react';
 import WasteScanner from './WasteScanner';
+import { usePredictions } from '../../hooks/usePredictions';
 import './WastePrediction.css';
 
-const COMPOSITION = [
-  { label: 'Orgánico %', value: '42.5', tone: 'primary' },
-  { label: 'Plástico %', value: '28.1', tone: 'secondary' },
-  { label: 'Vidrio %', value: '14.9', tone: 'tertiary' },
-  { label: 'Papel %', value: '14.5', tone: 'neutral' },
-];
+// Mapeo de iconos para las categorías
+const getCategoryIcon = (categoria) => {
+  const icons = {
+    'PLASTICO': 'shopping_bag',
+    'CARTON':   'inventory_2',
+    'VIDRIO':   'wine_bar',
+    'ORGANICO': 'eco',
+  };
+  return icons[categoria] || 'delete';
+};
 
-const LOGS = [
-  {
-    icon: 'eco',
-    iconClass: 'log-icon-primary',
-    title: 'Restos Orgánicos',
-    time: '14:22:05',
-    desc: 'Materia biodegradable detectada',
-    tag: 'Alta Densidad',
-    tagClass: 'tag-secondary',
-  },
-  {
-    icon: 'shopping_bag',
-    iconClass: 'log-icon-secondary',
-    title: 'Envase Plástico (PET)',
-    time: '14:21:48',
-    desc: 'Botella transparente - Clasificada',
-    tag: 'Reciclable',
-    tagClass: 'tag-primary',
-  },
-  {
-    icon: 'wine_bar',
-    iconClass: 'log-icon-tertiary',
-    title: 'Vidrio Cristalino',
-    time: '14:19:30',
-    desc: 'Vidrio neutro - Optimizado',
-    tag: 'Reutilización Elite',
-    tagClass: 'tag-tertiary',
-  },
-  {
-    icon: 'news',
-    iconClass: 'log-icon-neutral',
-    title: 'Papel Mix',
-    time: '14:15:12',
-    desc: 'Celulosa reciclable detectada',
-    tag: null,
-    tagClass: '',
-  },
-];
+// Mapeo de clases CSS para las categorías
+const getCategoryClass = (categoria) => {
+  const classes = {
+    'PLASTICO': 'log-icon-secondary',
+    'CARTON':   'log-icon-neutral',
+    'VIDRIO':   'log-icon-tertiary',
+    'ORGANICO': 'log-icon-primary',
+  };
+  return classes[categoria] || 'log-icon-neutral';
+};
+
+// Tag según confianza (confianzaPct = 0-100)
+const getCategoryTag = (categoria, confianzaPct) => {
+  if (confianzaPct >= 90) return { text: 'Alta Confianza',   class: 'tag-primary' };
+  if (confianzaPct >= 70) return { text: 'Confianza Media',  class: 'tag-secondary' };
+  return                         { text: 'Baja Confianza',   class: 'tag-neutral' };
+};
+
+// Etiqueta legible de la categoría
+const getCategoryLabel = (categoria) => {
+  const labels = {
+    'PLASTICO': 'Plástico',
+    'CARTON':   'Cartón',
+    'VIDRIO':   'Vidrio',
+    'ORGANICO': 'Orgánico',
+  };
+  return labels[categoria] || categoria;
+};
 
 const WEEKLY_BARS = [
   { label: 'Lun', height: 45, weight: '84kg', opacity: 0.2 },
@@ -58,11 +53,47 @@ const WEEKLY_BARS = [
   { label: 'Dom', height: 40, weight: '72kg', opacity: 0.3, muted: true },
 ];
 
-export default function WastePrediction() {
+export default function WastePrediction({ onNavigate }) {
   const [todayHeight, setTodayHeight] = useState(95);
+  const { predictions, loading, fetchPredictions } = usePredictions();
+  const [recentLogs, setRecentLogs] = useState([]);
+
+  // Cargar predicciones al montar el componente
+  useEffect(() => {
+    fetchPredictions(10, 0); // Obtener las 10 más recientes
+  }, [fetchPredictions]);
+
+  // Convertir predicciones del backend al formato de logs
+  useEffect(() => {
+    const logs = predictions.map((pred) => {
+      const confianzaPct = Math.round((pred.confianza ?? 0) * 100);
+      const tag = getCategoryTag(pred.categoria, confianzaPct);
+      return {
+        id: pred.id,
+        icon: getCategoryIcon(pred.categoria),
+        iconClass: getCategoryClass(pred.categoria),
+        title: pred.residuoDetectado,
+        time: new Date(pred.createdAt).toLocaleTimeString('es-ES', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        }),
+        desc: `${getCategoryLabel(pred.categoria)} — Confianza: ${confianzaPct}%`,
+        tag: tag.text,
+        tagClass: tag.class,
+      };
+    });
+    setRecentLogs(logs);
+  }, [predictions]);
+
+  // Callback para cuando se detecta una nueva predicción
+  const handleNewPrediction = () => {
+    // Recargar las predicciones para mostrar la nueva
+    fetchPredictions(10, 0);
+  };
 
   useEffect(() => {
-    const cards = document.querySelectorAll('.wp-glass-card');
+    const cards = document.querySelectorAll('.wp-glass-card:not(.wp-scanner-card)');
     const handlers = [];
 
     cards.forEach((card) => {
@@ -123,7 +154,7 @@ export default function WastePrediction() {
 
       <div className="wp-grid-main">
         <section className="wp-scanner-section">
-          <WasteScanner />
+          <WasteScanner onNewPrediction={handleNewPrediction} />
         </section>
 
         <section className="wp-logs-section">
@@ -132,24 +163,35 @@ export default function WastePrediction() {
               <h3>Registros Recientes</h3>
               <span className="material-symbols-outlined wp-history-icon">history</span>
             </div>
-            <div className="wp-logs-list">
-              {LOGS.map((log) => (
-                <div key={log.title} className="wp-log-item">
-                  <div className={`wp-log-icon ${log.iconClass}`}>
-                    <span className="material-symbols-outlined">{log.icon}</span>
-                  </div>
-                  <div className="wp-log-body">
-                    <div className="wp-log-title-row">
-                      <p className="wp-log-title">{log.title}</p>
-                      <span className="wp-log-time">{log.time}</span>
+            {loading ? (
+              <div className="wp-logs-loading">
+                <p>Cargando historial...</p>
+              </div>
+            ) : recentLogs.length > 0 ? (
+              <div className="wp-logs-list">
+                {recentLogs.map((log) => (
+                  <div key={log.id} className="wp-log-item">
+                    <div className={`wp-log-icon ${log.iconClass}`}>
+                      <span className="material-symbols-outlined">{log.icon}</span>
                     </div>
-                    <p className="wp-log-desc">{log.desc}</p>
-                    {log.tag && <span className={`wp-log-tag ${log.tagClass}`}>{log.tag}</span>}
+                    <div className="wp-log-body">
+                      <div className="wp-log-title-row">
+                        <p className="wp-log-title">{log.title}</p>
+                        <span className="wp-log-time">{log.time}</span>
+                      </div>
+                      <p className="wp-log-desc">{log.desc}</p>
+                      {log.tag && <span className={`wp-log-tag ${log.tagClass}`}>{log.tag}</span>}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-            <button type="button" className="wp-logs-footer-btn">
+                ))}
+              </div>
+            ) : (
+              <div className="wp-logs-empty">
+                <p>No hay registros recientes</p>
+                <p>Usa la cámara para detectar residuos</p>
+              </div>
+            )}
+            <button type="button" className="wp-logs-footer-btn" onClick={() => onNavigate?.('history')}>
               Ver historial completo
               <span className="material-symbols-outlined">arrow_forward</span>
             </button>

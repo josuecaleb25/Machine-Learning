@@ -1,0 +1,127 @@
+.notification-system {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  pointer-events: none;
+  max-width: 400px;
+}
+
+.notification {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  min-width: 300px;
+  max-width: 400px;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-left: 4px solid;
+  pointer-events: all;
+  animation: slideIn 0.3s ease-out;
+}
+
+.notification--success {
+  border-left-color: #10b981;
+}
+
+.notification--error {
+  border-left-color: #ef4444;
+}
+
+.notification--warning {
+  border-left-color: #f59e0b;
+}
+
+.notification--info {
+  border-left-color: #3b82f6;
+}
+
+.notification__content {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.notification__icon {
+  margin-top: 0.125rem;
+}
+
+.notification--success .notification__icon {
+  color: #10b981;
+}
+
+.notification--error .notification__icon {
+  color: #ef4444;
+}
+
+.notification--warning .notification__icon {
+  color: #f59e0b;
+}
+
+.notification--info .notification__icon {
+  color: #3b82f6;
+}
+
+.notification__message {
+  flex: 1;
+}
+
+.notification__title {
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.notification__text {
+  color: #4b5563;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.notification__close {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  margin-left: 0.5rem;
+}
+
+.notification__close:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .notification-system {
+    top: 0.5rem;
+    right: 0.5rem;
+    left: 0.5rem;
+  }
+  
+  .notification {
+    min-width: auto;
+    max-width: none;
+  }
+}

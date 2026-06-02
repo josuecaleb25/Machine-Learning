@@ -1,127 +1,102 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { usePredictions } from '../../hooks/usePredictions';
 import './PredictionHistory.css';
 
-const PREDICTION_HISTORY = [
-  {
-    id: 1,
-    timestamp: '2024-06-02 14:32:18',
-    category: 'Plástico PET',
-    confidence: 98.5,
-    image: 'bottle_001.jpg',
-    status: 'Reciclable',
-    color: '#10b981',
-  },
-  {
-    id: 2,
-    timestamp: '2024-06-02 14:28:45',
-    category: 'Vidrio',
-    confidence: 96.2,
-    image: 'glass_jar_012.jpg',
-    status: 'Reciclable',
-    color: '#4edea3',
-  },
-  {
-    id: 3,
-    timestamp: '2024-06-02 14:25:11',
-    category: 'Papel/Cartón',
-    confidence: 94.8,
-    image: 'cardboard_box_003.jpg',
-    status: 'Reciclable',
-    color: '#68fcbf',
-  },
-  {
-    id: 4,
-    timestamp: '2024-06-02 14:21:33',
-    category: 'Metal/Aluminio',
-    confidence: 91.3,
-    image: 'can_aluminum_008.jpg',
-    status: 'Reciclable',
-    color: '#95d3ba',
-  },
-  {
-    id: 5,
-    timestamp: '2024-06-02 14:18:56',
-    category: 'Orgánico',
-    confidence: 89.7,
-    image: 'apple_core_021.jpg',
-    status: 'Compostable',
-    color: '#306d58',
-  },
-  {
-    id: 6,
-    timestamp: '2024-06-02 14:15:22',
-    category: 'Plástico PET',
-    confidence: 97.1,
-    image: 'bottle_002.jpg',
-    status: 'Reciclable',
-    color: '#10b981',
-  },
-  {
-    id: 7,
-    timestamp: '2024-06-02 14:12:08',
-    category: 'Vidrio',
-    confidence: 95.4,
-    image: 'glass_bottle_015.jpg',
-    status: 'Reciclable',
-    color: '#4edea3',
-  },
-  {
-    id: 8,
-    timestamp: '2024-06-02 14:08:41',
-    category: 'Papel/Cartón',
-    confidence: 93.2,
-    image: 'paper_sheet_007.jpg',
-    status: 'Reciclable',
-    color: '#68fcbf',
-  },
-  {
-    id: 9,
-    timestamp: '2024-06-02 14:05:19',
-    category: 'Metal/Aluminio',
-    confidence: 90.8,
-    image: 'can_soda_011.jpg',
-    status: 'Reciclable',
-    color: '#95d3ba',
-  },
-  {
-    id: 10,
-    timestamp: '2024-06-02 14:01:47',
-    category: 'Orgánico',
-    confidence: 88.9,
-    image: 'banana_peel_019.jpg',
-    status: 'Compostable',
-    color: '#306d58',
-  },
-  {
-    id: 11,
-    timestamp: '2024-06-02 13:58:15',
-    category: 'Plástico PET',
-    confidence: 96.7,
-    image: 'bottle_003.jpg',
-    status: 'Reciclable',
-    color: '#10b981',
-  },
-  {
-    id: 12,
-    timestamp: '2024-06-02 13:54:32',
-    category: 'Vidrio',
-    confidence: 94.1,
-    image: 'glass_container_009.jpg',
-    status: 'Reciclable',
-    color: '#4edea3',
-  },
-];
+// Mapeo de colores para las categorías
+const getCategoryColor = (categoria) => {
+  const colors = {
+    'PLASTICO': '#10b981',
+    'CARTON':   '#68fcbf',
+    'VIDRIO':   '#4edea3',
+    'ORGANICO': '#306d58',
+  };
+  return colors[categoria] || '#6b7280';
+};
+
+// Etiqueta legible de la categoría
+const getCategoryLabel = (categoria) => {
+  const labels = {
+    'PLASTICO': 'Plástico',
+    'CARTON':   'Cartón',
+    'VIDRIO':   'Vidrio',
+    'ORGANICO': 'Orgánico',
+  };
+  return labels[categoria] || categoria;
+};
+
+// Estado de reciclaje según categoría
+const getCategoryStatus = (categoria) => {
+  return categoria === 'ORGANICO' ? 'Compostable' : 'Reciclable';
+};
 
 export default function PredictionHistory() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [allPredictions, setAllPredictions] = useState([]);
+  const [filteredHistory, setFilteredHistory] = useState([]);
+  
+  const { predictions, loading, fetchPredictions, deletePrediction } = usePredictions();
+  
+  const itemsPerPage = 10;
 
-  const filteredHistory = PREDICTION_HISTORY.filter((item) => {
-    const matchesSearch = item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.image.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterCategory === 'all' || item.category === filterCategory;
-    return matchesSearch && matchesFilter;
-  });
+  // Cargar todas las predicciones al montar
+  useEffect(() => {
+    const loadAllPredictions = async () => {
+      try {
+        const result = await fetchPredictions(100, 0); // Cargar más registros
+        setAllPredictions(result.items || []);
+      } catch (error) {
+        console.error('Error loading predictions:', error);
+      }
+    };
+    loadAllPredictions();
+  }, [fetchPredictions]);
+
+  // Filtrar predictions basado en búsqueda y categoría
+  useEffect(() => {
+    const filtered = allPredictions.filter((item) => {
+      const label = getCategoryLabel(item.categoria).toLowerCase();
+      const matchesSearch =
+        item.residuoDetectado.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        label.includes(searchTerm.toLowerCase());
+      const matchesFilter = filterCategory === 'all' || item.categoria === filterCategory;
+      return matchesSearch && matchesFilter;
+    });
+    setFilteredHistory(filtered);
+    setCurrentPage(1);
+  }, [allPredictions, searchTerm, filterCategory]);
+
+  // Formatear datos para la tabla
+  const formatPredictionForTable = (prediction) => {
+    const confianzaPct = Math.round((prediction.confianza ?? 0) * 100);
+    return {
+      id: prediction.id,
+      timestamp: new Date(prediction.createdAt).toLocaleString('es-ES'),
+      category: getCategoryLabel(prediction.categoria),
+      confidence: confianzaPct,
+      deteccion: prediction.residuoDetectado,
+      status: getCategoryStatus(prediction.categoria),
+      color: getCategoryColor(prediction.categoria),
+    };
+  };
+
+  // Obtener elementos de la página actual
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentItems = filteredHistory.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(filteredHistory.length / itemsPerPage);
+
+  const handleDeletePrediction = async (predictionId) => {
+    if (confirm('¿Estás seguro de que quieres eliminar esta predicción?')) {
+      try {
+        await deletePrediction(predictionId);
+        setAllPredictions(prev => prev.filter(p => p.id !== predictionId));
+      } catch (error) {
+        alert('Error al eliminar la predicción');
+      }
+    }
+  };
 
   return (
     <div className="ph-page content-container">
@@ -130,7 +105,7 @@ export default function PredictionHistory() {
         <div>
           <h2 className="ph-title">Historial de Predicciones</h2>
           <p className="ph-subtitle">
-            Registro completo de clasificaciones realizadas por el modelo CNN
+            Registro completo de clasificaciones realizadas por el modelo de IA
           </p>
         </div>
         <div className="ph-status-badge">
@@ -146,55 +121,18 @@ export default function PredictionHistory() {
             <span className="material-symbols-outlined">search</span>
             <input
               type="text"
-              placeholder="Buscar por categoría o archivo..."
+              placeholder="Buscar por categoría..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="ph-search-input"
             />
           </div>
           <div className="ph-filter-buttons">
-            <button
-              type="button"
-              className={`ph-filter-btn ${filterCategory === 'all' ? 'active' : ''}`}
-              onClick={() => setFilterCategory('all')}
-            >
-              Todas
-            </button>
-            <button
-              type="button"
-              className={`ph-filter-btn ${filterCategory === 'Plástico PET' ? 'active' : ''}`}
-              onClick={() => setFilterCategory('Plástico PET')}
-            >
-              Plástico
-            </button>
-            <button
-              type="button"
-              className={`ph-filter-btn ${filterCategory === 'Vidrio' ? 'active' : ''}`}
-              onClick={() => setFilterCategory('Vidrio')}
-            >
-              Vidrio
-            </button>
-            <button
-              type="button"
-              className={`ph-filter-btn ${filterCategory === 'Papel/Cartón' ? 'active' : ''}`}
-              onClick={() => setFilterCategory('Papel/Cartón')}
-            >
-              Papel
-            </button>
-            <button
-              type="button"
-              className={`ph-filter-btn ${filterCategory === 'Metal/Aluminio' ? 'active' : ''}`}
-              onClick={() => setFilterCategory('Metal/Aluminio')}
-            >
-              Metal
-            </button>
-            <button
-              type="button"
-              className={`ph-filter-btn ${filterCategory === 'Orgánico' ? 'active' : ''}`}
-              onClick={() => setFilterCategory('Orgánico')}
-            >
-              Orgánico
-            </button>
+            <button type="button" className={`ph-filter-btn ${filterCategory === 'all' ? 'active' : ''}`} onClick={() => setFilterCategory('all')}>Todas</button>
+            <button type="button" className={`ph-filter-btn ${filterCategory === 'PLASTICO' ? 'active' : ''}`} onClick={() => setFilterCategory('PLASTICO')}>Plástico</button>
+            <button type="button" className={`ph-filter-btn ${filterCategory === 'VIDRIO' ? 'active' : ''}`} onClick={() => setFilterCategory('VIDRIO')}>Vidrio</button>
+            <button type="button" className={`ph-filter-btn ${filterCategory === 'CARTON' ? 'active' : ''}`} onClick={() => setFilterCategory('CARTON')}>Cartón</button>
+            <button type="button" className={`ph-filter-btn ${filterCategory === 'ORGANICO' ? 'active' : ''}`} onClick={() => setFilterCategory('ORGANICO')}>Orgánico</button>
           </div>
         </div>
       </div>
@@ -206,68 +144,121 @@ export default function PredictionHistory() {
             <h3 className="ph-chart-title">Registros de Clasificación</h3>
             <p className="ph-history-count">{filteredHistory.length} predicciones encontradas</p>
           </div>
-          <button type="button" className="ph-export-btn">
-            <span className="material-symbols-outlined">download</span>
-            Exportar CSV
-          </button>
         </div>
 
-        <div className="ph-history-table">
-          <div className="ph-table-header">
-            <div className="ph-th ph-th-id">ID</div>
-            <div className="ph-th ph-th-timestamp">Fecha y Hora</div>
-            <div className="ph-th ph-th-category">Categoría</div>
-            <div className="ph-th ph-th-confidence">Confianza</div>
-            <div className="ph-th ph-th-image">Archivo</div>
-            <div className="ph-th ph-th-status">Estado</div>
+        {loading ? (
+          <div className="ph-loading">
+            <p>Cargando historial...</p>
           </div>
-
-          <div className="ph-table-body">
-            {filteredHistory.map((item) => (
-              <div key={item.id} className="ph-table-row">
-                <div className="ph-td ph-td-id">#{item.id.toString().padStart(4, '0')}</div>
-                <div className="ph-td ph-td-timestamp">
-                  <span className="material-symbols-outlined">schedule</span>
-                  {item.timestamp}
-                </div>
-                <div className="ph-td ph-td-category">
-                  <span
-                    className="ph-category-badge"
-                    style={{
-                      background: `${item.color}20`,
-                      color: item.color,
-                      borderColor: `${item.color}40`,
-                    }}
-                  >
-                    {item.category}
-                  </span>
-                </div>
-                <div className="ph-td ph-td-confidence">
-                  <div className="ph-confidence-bar-container">
-                    <div
-                      className="ph-confidence-bar"
-                      style={{
-                        width: `${item.confidence}%`,
-                        background: item.color,
-                      }}
-                    />
-                  </div>
-                  <span className="ph-confidence-text">{item.confidence}%</span>
-                </div>
-                <div className="ph-td ph-td-image">
-                  <span className="material-symbols-outlined">image</span>
-                  {item.image}
-                </div>
-                <div className="ph-td ph-td-status">
-                  <span className="ph-status-badge-small success">
-                    <span className="material-symbols-outlined">check_circle</span>
-                    {item.status}
-                  </span>
-                </div>
+        ) : filteredHistory.length === 0 ? (
+          <div className="ph-empty">
+            <span className="material-symbols-outlined">history</span>
+            <h3>No hay registros</h3>
+            <p>Aún no has realizado predicciones de residuos</p>
+          </div>
+        ) : (
+          <>
+            <div className="ph-history-table">
+              <div className="ph-table-header">
+                <div className="ph-th ph-th-id">ID</div>
+                <div className="ph-th ph-th-timestamp">Fecha y Hora</div>
+                <div className="ph-th ph-th-category">Categoría</div>
+                <div className="ph-th ph-th-confidence">Confianza</div>
+                <div className="ph-th ph-th-image">Detección</div>
+                <div className="ph-th ph-th-status">Estado</div>
+                <div className="ph-th ph-th-actions">Acciones</div>
               </div>
-            ))}
-          </div>
-        </div>
+
+              <div className="ph-table-body">
+                {currentItems.map((item) => {
+                  const formattedItem = formatPredictionForTable(item);
+                  return (
+                    <div key={item.id} className="ph-table-row">
+                      <div className="ph-td ph-td-id">#{item.id.toString().padStart(4, '0')}</div>
+                      <div className="ph-td ph-td-timestamp">
+                        <span className="material-symbols-outlined">schedule</span>
+                        {formattedItem.timestamp}
+                      </div>
+                      <div className="ph-td ph-td-category">
+                        <span
+                          className="ph-category-badge"
+                          style={{
+                            background: `${formattedItem.color}20`,
+                            color: formattedItem.color,
+                            borderColor: `${formattedItem.color}40`,
+                          }}
+                        >
+                          {formattedItem.category}
+                        </span>
+                      </div>
+                      <div className="ph-td ph-td-confidence">
+                        <div className="ph-confidence-bar-container">
+                          <div
+                            className="ph-confidence-bar"
+                            style={{
+                              width: `${formattedItem.confidence}%`,
+                              background: formattedItem.color,
+                            }}
+                          />
+                        </div>
+                        <span className="ph-confidence-text">{formattedItem.confidence}%</span>
+                      </div>
+                      <div className="ph-td ph-td-image">
+                        <span className="material-symbols-outlined">image</span>
+                        {formattedItem.deteccion}
+                      </div>
+                      <div className="ph-td ph-td-status">
+                        <span className="ph-status-badge-small success">
+                          <span className="material-symbols-outlined">check_circle</span>
+                          {formattedItem.status}
+                        </span>
+                      </div>
+                      <div className="ph-td ph-td-actions">
+                        <button
+                          type="button"
+                          className="ph-action-btn delete"
+                          onClick={() => handleDeletePrediction(item.id)}
+                          title="Eliminar registro"
+                        >
+                          <span className="material-symbols-outlined">delete</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Paginación */}
+            {totalPages > 1 && (
+              <div className="ph-pagination">
+                <button
+                  type="button"
+                  className="ph-pagination-btn"
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  <span className="material-symbols-outlined">chevron_left</span>
+                  Anterior
+                </button>
+                
+                <div className="ph-pagination-info">
+                  Página {currentPage} de {totalPages}
+                </div>
+                
+                <button
+                  type="button"
+                  className="ph-pagination-btn"
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  Siguiente
+                  <span className="material-symbols-outlined">chevron_right</span>
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

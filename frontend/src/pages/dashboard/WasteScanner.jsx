@@ -1,6 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import * as tmImage from '@teachablemachine/image';
+import { usePredictions } from '../../hooks/usePredictions';
+import { useNotificationContext } from '../../context/NotificationContext';
 
 const DEMO_IMAGE = '/screen.png';
+
+// URLs del modelo de Teachable Machine
+const MODEL_URL = '/models/model.json';
+const METADATA_URL = '/models/metadata.json';
+
+// Mapa de etiquetas del modelo → categoría del backend (enum CATEGORIA_RESIDUO)
+const LABEL_TO_CATEGORIA = {
+  'Plástico': 'PLASTICO',
+  'Cartón':   'CARTON',
+  'Vidrio':   'VIDRIO',
+  'Orgánico': 'ORGANICO',
+};
 
 async function openCameraStream() {
   const attempts = [
@@ -20,12 +35,22 @@ async function openCameraStream() {
   throw lastError ?? new Error('No camera');
 }
 
-export default function WasteScanner() {
+export default function WasteScanner({ onNewPrediction }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const canvasRef = useRef(null);
+  const intervalRef = useRef(null);
+  const lastSavedPrediction = useRef(null);
 
   const [cameraOn, setCameraOn] = useState(false);
   const [cameraError, setCameraError] = useState('');
+  const [model, setModel] = useState(null);
+  const [isModelLoading, setIsModelLoading] = useState(true);
+  const [prediction, setPrediction] = useState(null);
+  const [isScanning, setIsScanning] = useState(false);
+
+  const { createPrediction } = usePredictions();
+  const { success, error: showError } = useNotificationContext();
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
@@ -33,8 +58,127 @@ export default function WasteScanner() {
       streamRef.current = null;
     }
     if (videoRef.current) videoRef.current.srcObject = null;
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
     setCameraOn(false);
+    setIsScanning(false);
+    setPrediction(null);
   }, []);
+
+  // Cargar el modelo de Teachable Machine
+  useEffect(() => {
+    const loadModel = async () => {
+      try {
+        setIsModelLoading(true);
+        const loadedModel = await tmImage.load(MODEL_URL, METADATA_URL);
+        setModel(loadedModel);
+        setIsModelLoading(false);
+        success('Modelo de IA cargado correctamente', {
+          title: 'Sistema listo'
+        });
+      } catch (error) {
+        console.error('Error loading model:', error);
+        setIsModelLoading(false);
+        showError('Error al cargar el modelo de IA. Verifica que los archivos estén disponibles.', {
+          title: 'Error del sistema'
+        });
+      }
+    };
+    loadModel();
+  }, [success, showError]);
+
+  // Función para realizar predicciones
+  const predictFromVideo = useCallback(async () => {
+    if (!model || !videoRef.current || !canvasRef.current) return;
+    
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    
+    if (video.readyState !== 4) return; // Video no está listo
+    
+    // Configurar canvas con las dimensiones del video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Dibujar el frame actual del video en el canvas
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+    
+    try {
+      const predictions = await model.predict(canvas);
+      const topPrediction = predictions.reduce((max, pred) => 
+        pred.probability > max.probability ? pred : max
+      );
+      
+      if (topPrediction.probability > 0.7) {
+        setPrediction((prevPrediction) => {
+          const sameClass = prevPrediction?.className === topPrediction.className;
+          const sameConfidence = prevPrediction && Math.abs(prevPrediction.probability - topPrediction.probability) < 0.01;
+          return sameClass && sameConfidence ? prevPrediction : topPrediction;
+        });
+
+        // Guardar en backend si es diferente al último o han pasado 10s
+        const now = Date.now();
+        const isDifferent = lastSavedPrediction.current?.className !== topPrediction.className;
+        const isOldEnough = !lastSavedPrediction.current || (now - lastSavedPrediction.current.timestamp > 10000);
+
+        if (isDifferent || isOldEnough) {
+          const categoria = LABEL_TO_CATEGORIA[topPrediction.className];
+          if (!categoria) {
+            console.warn('Categoría no reconocida:', topPrediction.className);
+            return;
+          }
+
+          try {
+            const predictionData = {
+              residuoDetectado: topPrediction.className,
+              categoria,
+              confianza: topPrediction.probability, // backend espera 0-1
+            };
+
+            await createPrediction(predictionData);
+            lastSavedPrediction.current = { ...topPrediction, timestamp: now };
+
+            success(`${topPrediction.className} detectado`, {
+              title: 'Residuo clasificado',
+              duration: 3000,
+            });
+
+            if (onNewPrediction) onNewPrediction(predictionData);
+          } catch (err) {
+            console.error('Error saving prediction:', err);
+            showError('No se pudo guardar la predicción', { title: 'Error de conexión' });
+          }
+        }
+      } else {
+        // Si la confianza baja del umbral, limpiar la predicción mostrada
+        setPrediction(null);
+      }
+    } catch (error) {
+      console.error('Error making prediction:', error);
+    }
+  }, [model, createPrediction, onNewPrediction]);
+
+  // Iniciar predicciones continuas cuando la cámara está activa
+  useEffect(() => {
+    if (cameraOn && model && !intervalRef.current) {
+      setIsScanning(true);
+      intervalRef.current = setInterval(predictFromVideo, 1000); // Predecir cada segundo
+    } else if (!cameraOn && intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+      setIsScanning(false);
+    }
+    
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [cameraOn, model, predictFromVideo]);
 
   useEffect(() => () => stopCamera(), [stopCamera]);
 
@@ -127,7 +271,7 @@ export default function WasteScanner() {
             )}
           </div>
 
-          {/* HUD inferior: solo cuando NO hay cámara activa (modo demo con imagen) */}
+          {/* HUD inferior: mostrar predicción real o demo */}
           {!cameraOn && (
             <div className="wp-hud-bottom">
               <div className="wp-target-card">
@@ -141,10 +285,40 @@ export default function WasteScanner() {
               </div>
             </div>
           )}
+          
+          {/* Mostrar predicción en tiempo real cuando la cámara está activa */}
+          {cameraOn && (
+            <div className="wp-hud-bottom">
+              <div className="wp-target-card">
+                <p className="wp-target-label">
+                  {prediction ? 'Objeto detectado' : 'Escaneando...'}
+                </p>
+                <p className="wp-target-value">
+                  {prediction ? prediction.className : 'Buscando objetos'}
+                </p>
+                <p className="wp-target-confidence">
+                  {prediction
+                    ? `Puntuación de confianza: ${(prediction.probability * 100).toFixed(2)}%`
+                    : 'Analizando imagen...'}
+                </p>
+              </div>
+              <div className="wp-fit-card">
+                <span className="material-symbols-outlined">recycling</span>
+                <span>{prediction ? 'Apto' : 'Esperando'}</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {cameraError && <p className="wp-scanner-error">{cameraError}</p>}
+      
+      {isModelLoading && (
+        <p className="wp-scanner-status">Cargando modelo de IA...</p>
+      )}
+      
+      {/* Canvas oculto para procesamiento de imágenes */}
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
     </div>
   );
 }

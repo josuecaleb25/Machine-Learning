@@ -2,8 +2,8 @@ export default function Footer() {
   return (
     <footer className="bg-surface-container-lowest py-20 px-container-padding-desktop flex flex-col md:flex-row justify-between items-center gap-8 w-full border-t border-outline-variant/30">
       <div className="flex flex-col gap-4 text-center md:text-left">
-        <div className="font-headline-md text-headline-md text-primary">EcoSorteo AI</div>
-        <p className="text-on-surface-variant max-w-xs font-body-md">© 2024 EcoSorteo AI. Cosechando un futuro más verde.</p>
+        <div className="font-headline-md text-headline-md text-primary">Smart City</div>
+        <p className="text-on-surface-variant max-w-xs font-body-md">© 2024 Smart City. Cosechando un futuro más verde.</p>
       </div>
       <div className="flex flex-wrap justify-center gap-8">
         {['Reporte Sostenibilidad', 'Ética de Privacidad', 'Términos de Servicio', 'Contacto'].map(link => (

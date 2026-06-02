@@ -4,7 +4,7 @@ const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
 ];
 
-const USER_AGENT = 'EcoTechOS/1.0 (Lima recycling map; educational project)';
+const USER_AGENT = 'SmartCity/1.0 (Lima recycling map; educational project)';
 
 const LIMA_BBOX = { south: -12.5, west: -77.25, north: -11.75, east: -76.7 };
 

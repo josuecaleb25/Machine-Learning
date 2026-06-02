@@ -38,7 +38,7 @@ export default function CollectionPointsMap({ onStatsChange }) {
   onStatsRef.current = onStatsChange;
 
   const { isLoaded, loadError: mapsLoadError } = useJsApiLoader({
-    id: 'ecotech-google-maps',
+    id: 'smartcity-google-maps',
     googleMapsApiKey: mapsKey,
     libraries: ['visualization'],
   });

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { NotificationProvider } from '../context/NotificationContext';
+import NotificationSystem from '../components/layout/NotificationSystem';
 import DashboardHome from './dashboard/DashboardHome';
 import WastePrediction from './dashboard/WastePrediction';
 import Analytics from './dashboard/Analytics';
@@ -57,7 +59,7 @@ export default function Dashboard() {
   const renderContent = () => {
     switch (activeView) {
       case 'prediction':
-        return <WastePrediction />;
+        return <WastePrediction onNavigate={setActiveView} />;
       case 'analytics':
         return <Analytics />;
       case 'recycling-map':
@@ -81,12 +83,14 @@ export default function Dashboard() {
   };
 
   return (
-    <div
-      className={`dashboard-wrapper${activeView === 'analytics' ? ' dashboard-wrapper--analytics' : ''}${activeView === 'recycling-map' ? ' dashboard-wrapper--recycling-map' : ''}${activeView === 'prediction' ? ' dashboard-wrapper--waste-prediction' : ''}${activeView === 'history' ? ' dashboard-wrapper--history' : ''}`}
-    >
+    <NotificationProvider>
+      <NotificationSystem />
+      <div
+        className={`dashboard-wrapper${activeView === 'analytics' ? ' dashboard-wrapper--analytics' : ''}${activeView === 'recycling-map' ? ' dashboard-wrapper--recycling-map' : ''}${activeView === 'prediction' ? ' dashboard-wrapper--waste-prediction' : ''}${activeView === 'history' ? ' dashboard-wrapper--history' : ''}`}
+      >
       <aside className="sidebar">
         <div className="sidebar-header">
-          <h1 className="sidebar-title">EcoTech OS</h1>
+          <h1 className="sidebar-title">Smart City</h1>
           <p className="sidebar-subtitle">Premium Management</p>
         </div>
 
@@ -146,18 +150,6 @@ export default function Dashboard() {
                   {dark ? 'light_mode' : 'dark_mode'}
                 </span>
               </button>
-              <button type="button" className="icon-btn">
-                <span className="material-symbols-outlined">notifications</span>
-              </button>
-              <button type="button" className="icon-btn">
-                <span className="material-symbols-outlined">settings</span>
-              </button>
-              <div className="user-avatar">
-                <img
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDxE2Um_9xowLaVsHZlD5mUmnbWMr3xU7GNjKjQyaBqnoMC2nidrlpYsMpBEYW-JA_4toaPxid68Xh1tA2zckxS1aHPcEk1XJtTxCZFFXBr2hcBuYyVnsImfz7gxeSeziKXgGDdc5vFr554bVa_BG9ttxGRyjStk80Cv6pSKiJ_UCeONIeROhY0rDH_AkfpC58URnw7AygdjiXc6oQ5neDssn0DU_KUtUDAeK5p9PGJu_NMelRd9UjhOmC859gmASTSFz8sF6S9--M"
-                  alt="Perfil de usuario"
-                />
-              </div>
             </div>
           </div>
         </header>
@@ -171,5 +163,6 @@ export default function Dashboard() {
         </button>
       )}
     </div>
+    </NotificationProvider>
   );
 }

@@ -23,7 +23,7 @@ export default function Navbar({ onMobileMenuToggle, onAuthClick }) {
                 <span className="material-symbols-outlined text-primary text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>eco</span>
                 <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary rounded-full animate-pulse"></div>
               </div>
-              <span className="font-semibold text-lg text-on-surface tracking-tight">EcoSorteo AI</span>
+              <span className="font-semibold text-lg text-on-surface tracking-tight">Smart City</span>
             </div>
 
             <nav className="hidden md:flex items-center gap-1 relative z-10">
