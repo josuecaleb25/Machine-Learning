@@ -816,14 +816,17 @@
   color: var(--wp-fg);
   background-color: #0a0c0b;
   position: relative;
-  min-height: 100%;
+  min-height: 100vh;
 }
 
 /* Rejilla de puntos + scanline (mockup táctico) */
 [data-theme="dark"] .wp-page::before {
   content: '';
-  position: absolute;
-  inset: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 0;
   pointer-events: none;
   background-image: radial-gradient(rgba(16, 185, 129, 0.55) 1px, transparent 1px);
@@ -833,7 +836,7 @@
 
 [data-theme="dark"] .wp-page::after {
   content: '';
-  position: absolute;
+  position: fixed;
   left: 0;
   right: 0;
   height: 2px;
