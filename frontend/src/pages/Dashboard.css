@@ -328,11 +328,6 @@
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  overflow-y: auto;
-}
 
 /* Analíticas: sin barra en la ventana ni en el panel */
 html.dashboard-analytics-scroll-lock,
